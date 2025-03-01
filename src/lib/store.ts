@@ -475,7 +475,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
       // Reset dealer hand with proper typing
       const dealerHand: Card[] = [];
       
-      // Set game phase to betting
+      // Set initial timer value (30 seconds for betting phase)
+      const initialTimer = 30;
+      
+      // Set game phase to betting with timer
       set({
         deck: newDeck,
         dealerHand,
@@ -483,10 +486,39 @@ export const useGameStore = create<GameStore>((set, get) => ({
         currentPlayerIndex: -1,
         gamePhase: 'betting',
         playerHands: [],
+        timer: initialTimer,
       });
       
       // Sync the updated game state to the database
       await get().syncGameState();
+      
+      // Start countdown timer
+      const timerInterval = setInterval(async () => {
+        const { timer, gamePhase } = get();
+        
+        // If game phase changed or timer reached 0, clear interval
+        if (gamePhase !== 'betting' || timer === null || timer <= 0) {
+          clearInterval(timerInterval);
+          return;
+        }
+        
+        // Decrement timer
+        set({ timer: timer - 1 });
+        
+        // Sync updated timer to database
+        await get().syncGameState();
+        
+        // When timer reaches 0, move to next phase
+        if (timer <= 1) {
+          clearInterval(timerInterval);
+          
+          // Deal cards to players and dealer
+          // This would be implemented in a separate function
+          // For now, just change the game phase
+          set({ gamePhase: 'player_turns', timer: null });
+          await get().syncGameState();
+        }
+      }, 1000);
     } catch (error) {
       console.error('Error starting new round:', error);
     }

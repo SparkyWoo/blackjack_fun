@@ -224,8 +224,8 @@ export function Table() {
 
         {/* Betting Controls */}
         {gamePhase === 'betting' && selectedSeat !== null && (
-          <div className="fixed bottom-0 left-0 right-0 flex justify-center items-center z-40 pb-8">
-            <div className="bg-black/80 p-4 rounded-xl border border-yellow-500/30 shadow-lg">
+          <div className="fixed bottom-0 left-0 right-0 flex justify-center items-center z-50 pb-8">
+            <div className="bg-black/80 p-4 rounded-xl border border-yellow-500/30 shadow-lg max-w-md w-full mx-auto">
               <BetControls
                 onPlaceBet={(amount) => {
                   if (selectedSeat !== null) {
@@ -245,7 +245,7 @@ export function Table() {
                   return currentPlayer?.balance || 0;
                 })()}
                 existingBet={playerHands.find(h => h.seatPosition === selectedSeat)?.betAmount || 0}
-                timer={timer}
+                className="w-full"
               />
             </div>
           </div>

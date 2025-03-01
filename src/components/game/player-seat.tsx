@@ -173,10 +173,10 @@ export function PlayerSeat({
 
       {/* Bet Amount - Show above the seat */}
       {hand && hand.betAmount > 0 && (
-        <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 z-30">
+        <div className="absolute -top-16 left-1/2 transform -translate-x-1/2 z-30">
           <div className="flex flex-col items-center">
             <div className="text-sm text-white font-medium mb-1">Current Bet</div>
-            <div className="px-4 py-2 bg-black/60 rounded-lg text-yellow-400 font-bold text-lg border border-yellow-500/30 shadow-lg">
+            <div className="px-4 py-2 bg-black/80 rounded-lg text-yellow-400 font-bold text-lg border border-yellow-500/50 shadow-lg animate-pulse">
               ${hand.betAmount}
             </div>
           </div>

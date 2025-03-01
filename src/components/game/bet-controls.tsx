@@ -7,13 +7,12 @@ export interface BetControlsProps {
   onPlaceBet: (amount: number) => void;
   playerBalance: number;
   existingBet?: number;
-  timer?: number | null;
   className?: string;
 }
 
 const CHIP_VALUES = [5, 25, 100, 500, 1000];
 
-export function BetControls({ onPlaceBet, playerBalance, existingBet = 0, timer = null, className = '' }: BetControlsProps) {
+export function BetControls({ onPlaceBet, playerBalance, existingBet = 0, className = '' }: BetControlsProps) {
   const [selectedAmount, setSelectedAmount] = useState<number>(0);
   const [currentBet, setCurrentBet] = useState<number[]>([]);
 
@@ -50,25 +49,17 @@ export function BetControls({ onPlaceBet, playerBalance, existingBet = 0, timer 
   };
 
   return (
-    <div className={`flex flex-col items-center space-y-6 ${className}`}>
-      {/* Timer */}
-      {timer !== null && (
-        <div className="relative mb-2">
-          <div className="absolute inset-0 bg-black/20 rounded-full blur-md"></div>
-          <div className="relative px-4 py-1 bg-black/40 backdrop-blur-sm rounded-full border border-white/10">
-            <span className="text-2xl font-bold text-white">{timer}s</span>
-          </div>
-        </div>
-      )}
-
-      {/* Available Balance */}
-      <div className="flex items-center space-x-2 bg-black/40 px-4 py-2 rounded-xl border border-white/10 shadow-inner">
-        <div className="text-gray-300 text-sm">Balance:</div>
-        <div className="text-white font-bold text-lg">${playerBalance.toLocaleString()}</div>
+    <div className={`flex flex-col items-center w-full ${className}`}>
+      {/* Available Balance and Current Bet */}
+      <div className="flex items-center justify-between w-full mb-4">
+        <div className="text-white text-sm">Balance: <span className="font-bold text-green-400">${playerBalance.toLocaleString()}</span></div>
+        {existingBet > 0 && (
+          <div className="text-white text-sm">Current Bet: <span className="font-bold text-yellow-400">${existingBet}</span></div>
+        )}
       </div>
 
       {/* Current Bet Display */}
-      <div className="relative min-h-[80px] w-full flex items-center justify-center">
+      <div className="relative min-h-[80px] w-full flex items-center justify-center mb-4">
         {currentBet.length > 0 ? (
           <div className="relative h-20 w-40">
             {/* Stack of chips */}
@@ -100,7 +91,7 @@ export function BetControls({ onPlaceBet, playerBalance, existingBet = 0, timer 
       </div>
 
       {/* Chip Selection */}
-      <div className="flex flex-wrap justify-center gap-2">
+      <div className="flex flex-wrap justify-center gap-2 mb-4 w-full">
         {CHIP_VALUES.map((value) => (
           <div 
             key={value}
@@ -116,7 +107,7 @@ export function BetControls({ onPlaceBet, playerBalance, existingBet = 0, timer 
       </div>
 
       {/* Action Buttons */}
-      <div className="flex space-x-4">
+      <div className="flex space-x-4 w-full justify-center">
         {/* Clear Bet Button */}
         <button
           onClick={handleClearBet}
