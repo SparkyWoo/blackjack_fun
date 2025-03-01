@@ -26,23 +26,23 @@ export function Actions({
 }: ActionsProps) {
   // Get button style based on action type
   const getButtonStyle = (action: PlayerAction, enabled: boolean) => {
-    if (!enabled) return 'bg-gray-700/50 text-gray-400 cursor-not-allowed';
+    if (!enabled) return 'bg-gray-700 text-gray-300 border-gray-600';
     
     switch (action) {
       case 'hit':
-        return 'bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white';
+        return 'bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white border-green-400';
       case 'stand':
-        return 'bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white';
+        return 'bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white border-red-400';
       case 'double':
-        return 'bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white';
+        return 'bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white border-purple-400';
       case 'split':
-        return 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white';
+        return 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white border-blue-400';
       case 'surrender':
-        return 'bg-gradient-to-r from-gray-600 to-gray-500 hover:from-gray-500 hover:to-gray-400 text-white';
+        return 'bg-gradient-to-r from-gray-600 to-gray-500 hover:from-gray-500 hover:to-gray-400 text-white border-gray-400';
       case 'insurance':
-        return 'bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 text-white';
+        return 'bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 text-white border-yellow-400';
       default:
-        return 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white';
+        return 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white border-blue-400';
     }
   };
 
@@ -76,8 +76,8 @@ export function Actions({
         shadow-lg shadow-black/20
         transition-all duration-200 ease-in-out
         transform hover:scale-105 active:scale-95
-        disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none
-        border border-white/10
+        disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none
+        border
         backdrop-filter backdrop-blur-sm
         flex flex-col items-center justify-center
         min-w-[80px]
@@ -91,7 +91,7 @@ export function Actions({
   return (
     <div className={`flex flex-col items-center space-y-4 ${className}`}>
       {/* Title */}
-      <div className="text-white font-bold text-xl mb-2">Your Turn</div>
+      <div className="text-white font-bold text-xl mb-2 bg-black/50 px-4 py-1 rounded-lg">Your Turn</div>
       
       {/* Timer */}
       {timer !== null && (

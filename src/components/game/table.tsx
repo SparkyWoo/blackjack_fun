@@ -167,10 +167,11 @@ export function Table() {
             <Dealer
               cards={dealerHand}
               score={dealerScore}
+              className="dealer-area"
             />
           </div>
 
-          {/* Player Seats - Positioned below the dealer */}
+          {/* Player Seats - Positioned below the dealer with enough space for cards */}
           <div className="absolute bottom-[15%] left-0 w-full">
             {seatPositions.map((pos, index) => {
               // Only show seats 0-6 (7 seats total)
@@ -242,12 +243,12 @@ export function Table() {
               <div className="p-4 bg-black/70 backdrop-blur-md rounded-xl border border-white/20 shadow-xl">
                 <Actions
                   onAction={handleAction}
-                  canHit={!!currentHand}
-                  canStand={!!currentHand}
-                  canDouble={!!currentHand && canDoubleDown(currentHand.cards)}
-                  canSplit={!!currentHand && canSplit(currentHand.cards)}
-                  canSurrender={!!currentHand && canSurrender(currentHand.cards)}
-                  canInsurance={!!dealerHand[0] && dealerHand[0].rank === 'A'}
+                  canHit={!!currentHand && currentHand.status === 'active'}
+                  canStand={!!currentHand && currentHand.status === 'active'}
+                  canDouble={!!currentHand && currentHand.status === 'active' && canDoubleDown(currentHand.cards)}
+                  canSplit={!!currentHand && currentHand.status === 'active' && canSplit(currentHand.cards)}
+                  canSurrender={!!currentHand && currentHand.status === 'active' && canSurrender(currentHand.cards)}
+                  canInsurance={!!dealerHand[0] && dealerHand[0].rank === 'A' && currentHand?.status === 'active'}
                   timer={timer}
                 />
               </div>

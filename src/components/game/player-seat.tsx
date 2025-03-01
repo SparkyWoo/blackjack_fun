@@ -142,37 +142,40 @@ export function PlayerSeat({
         )}
       </div>
 
-      {/* Cards - Display above the player */}
+      {/* Cards - Display above the player with clear positioning */}
       {hasHand && (
-        <div className="absolute -top-32 left-1/2 transform -translate-x-1/2 min-h-[120px] min-w-[150px]">
+        <div className="player-cards-fan">
           <div className="relative flex justify-center">
             {hand.cards.map((card, index) => {
               // Calculate rotation and offset for fan effect
-              const rotation = (index - (hand.cards.length - 1) / 2) * 5; // Subtle rotation
-              const translateX = (index - (hand.cards.length - 1) / 2) * 20; // Horizontal spread
-              const translateY = index * -5; // Slight vertical staggering
+              // For player, we want a vertical fan (cards pointing upward)
+              const rotation = (index - (hand.cards.length - 1) / 2) * 10; // Rotation for fan effect
+              const translateX = (index - (hand.cards.length - 1) / 2) * 25; // Horizontal spread
+              const translateY = -index * 5; // Slight vertical staggering (negative to go upward)
               
               return (
-                <Card
-                  key={`${card.suit}-${card.rank}-${index}`}
-                  card={card}
-                  isDealing={false}
-                  className={`
-                    absolute
-                    transform transition-all duration-300 ease-in-out
-                    hover:-translate-y-2
-                    ${index === 0 ? 'z-10' : `z-${10 + index}`}
-                    translate-x-[${translateX}px] translate-y-[${translateY}px] rotate-[${rotation}deg]
-                  `}
-                />
+                <div
+                  key={`player-${seatNumber}-${card.suit}-${card.rank}-${index}`}
+                  className="absolute transition-all duration-500 ease-in-out"
+                  style={{
+                    transform: `translateX(${translateX}px) translateY(${translateY}px) rotate(${rotation}deg)`,
+                    zIndex: 10 + index
+                  }}
+                >
+                  <Card
+                    card={card}
+                    isDealing={false}
+                    className="shadow-xl"
+                  />
+                </div>
               );
             })}
             
-            {/* Score Badge */}
+            {/* Score Badge - More prominent */}
             {hand.cards.some(card => card.isFaceUp) && (
-              <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 z-30">
-                <div className="px-3 py-1 bg-black/70 rounded-full text-white font-bold text-sm border border-white/20 shadow-lg">
-                  {calculateScore(hand.cards)}
+              <div className="absolute -bottom-10 left-1/2 transform -translate-x-1/2 z-30">
+                <div className="px-4 py-1.5 bg-black/80 rounded-full text-white font-bold text-base border border-white/30 shadow-lg">
+                  Score: {calculateScore(hand.cards)}
                 </div>
               </div>
             )}
@@ -184,8 +187,8 @@ export function PlayerSeat({
       {hand && hand.betAmount > 0 && (
         <div className="absolute -top-16 left-1/2 transform -translate-x-1/2 z-30">
           <div className="flex flex-col items-center">
-            <div className="text-sm text-white font-medium mb-1">Current Bet</div>
-            <div className="px-4 py-2 bg-black/80 rounded-lg text-yellow-400 font-bold text-lg border border-yellow-500/50 shadow-lg animate-pulse">
+            <div className="text-sm text-white font-medium mb-1 bg-black/60 px-2 py-0.5 rounded-md shadow-sm">Current Bet</div>
+            <div className="px-4 py-2 bg-gradient-to-r from-yellow-500 to-amber-500 rounded-lg text-white font-bold text-lg border border-yellow-300 shadow-lg">
               ${hand.betAmount}
             </div>
           </div>
