@@ -19,8 +19,8 @@ export function Table() {
     currentPlayerIndex,
     gamePhase,
     selectedSeat,
-    timer,
     isLoading,
+    timer,
     joinGame,
     placeBet,
     takeAction,
@@ -209,6 +209,7 @@ export function Table() {
                   (players.find(p => 
                     playerHands.some(h => h.playerId === p.id && h.seatPosition === selectedSeat)
                   )?.balance || 0) : 0}
+                timer={timer}
               />
             </div>
           </div>

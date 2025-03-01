@@ -6,12 +6,13 @@ import { Chip } from '@/components/game/chip';
 interface BetControlsProps {
   onPlaceBet: (amount: number) => void;
   playerBalance: number;
+  timer?: number | null;
   className?: string;
 }
 
 const CHIP_VALUES = [5, 25, 100, 500, 1000];
 
-export function BetControls({ onPlaceBet, playerBalance, className = '' }: BetControlsProps) {
+export function BetControls({ onPlaceBet, playerBalance, timer = null, className = '' }: BetControlsProps) {
   const [selectedAmount, setSelectedAmount] = useState<number>(0);
   const [currentBet, setCurrentBet] = useState<number[]>([]);
 
@@ -41,6 +42,16 @@ export function BetControls({ onPlaceBet, playerBalance, className = '' }: BetCo
 
   return (
     <div className={`flex flex-col items-center space-y-6 ${className}`}>
+      {/* Timer */}
+      {timer !== null && (
+        <div className="relative mb-2">
+          <div className="absolute inset-0 bg-black/20 rounded-full blur-md"></div>
+          <div className="relative px-4 py-1 bg-black/40 backdrop-blur-sm rounded-full border border-white/10">
+            <span className="text-2xl font-bold text-white">{timer}s</span>
+          </div>
+        </div>
+      )}
+
       {/* Available Balance */}
       <div className="flex items-center space-x-2 bg-black/40 px-4 py-2 rounded-xl border border-white/10 shadow-inner">
         <div className="text-gray-300 text-sm">Balance:</div>

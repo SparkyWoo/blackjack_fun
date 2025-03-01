@@ -13,7 +13,6 @@ interface GameStateRecord {
   current_player_index: number;
   game_phase: string;
   updated_at: string;
-  timer: number | null;
 }
 
 interface PlayerHandRecord {
@@ -169,7 +168,6 @@ export default function DebugPage() {
           current_player_index: -1,
           game_phase: 'waiting',
           updated_at: new Date().toISOString(),
-          timer: null,
         });
       
       if (createGameError) {
@@ -231,7 +229,6 @@ export default function DebugPage() {
                   <p><strong>Current Player:</strong> {gameState.current_player_index}</p>
                   <p><strong>Updated:</strong> {new Date(gameState.updated_at).toLocaleString()}</p>
                   <p><strong>Dealer Score:</strong> {gameState.dealer_score}</p>
-                  <p><strong>Timer:</strong> {gameState.timer}</p>
                   <div className="mt-2">
                     <p><strong>Dealer Hand:</strong></p>
                     <pre className="bg-gray-100 p-2 rounded text-xs overflow-auto max-h-40">
