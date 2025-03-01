@@ -1,6 +1,6 @@
 import React from 'react';
-import { Card } from './card';
-import { Chip } from './chip';
+import { Card } from '@/components/game/card';
+import { Chip } from '@/components/game/chip';
 import type { PlayerHand, Player } from '@/lib/types';
 
 interface PlayerSeatProps {

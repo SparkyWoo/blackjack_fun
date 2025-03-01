@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Chip } from './chip';
+import { Chip } from '@/components/game/chip';
 
 interface BetControlsProps {
   onPlaceBet: (amount: number) => void;

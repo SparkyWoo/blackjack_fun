@@ -1,8 +1,8 @@
 import React, { useEffect } from 'react';
-import { Dealer } from './dealer';
-import { PlayerSeat } from './player-seat';
-import { Actions } from './actions';
-import { BetControls } from './bet-controls';
+import { Dealer } from '@/components/game/dealer';
+import { PlayerSeat } from '@/components/game/player-seat';
+import { Actions } from '@/components/game/actions';
+import { BetControls } from '@/components/game/bet-controls';
 import { useGameStore } from '@/lib/store';
 import { canDoubleDown, canSplit, canSurrender } from '@/lib/blackjack';
 
