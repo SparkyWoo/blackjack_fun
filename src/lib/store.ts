@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { createDeck, dealCard, calculateHandScore, shouldDealerHit, calculatePayout } from './blackjack';
-import type { GameState, Player, PlayerHand, Card, GamePhase, PlayerAction } from './types';
+import type { GameState, Player, PlayerAction } from './types';
 import { supabase } from './supabase';
 
 interface GameStore extends GameState {
@@ -14,6 +14,9 @@ interface GameStore extends GameState {
   placeBet: (amount: number) => Promise<void>;
   takeAction: (action: PlayerAction) => Promise<void>;
   startNewRound: () => Promise<void>;
+  moveToNextPlayer: () => Promise<void>;
+  dealerPlay: () => Promise<void>;
+  handlePayouts: () => Promise<void>;
   
   // Game State Management
   updateGameState: (newState: Partial<GameState>) => void;
@@ -41,7 +44,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   joinGame: async (name: string, seatPosition: number) => {
     try {
       // Check if player exists
-      let { data: existingPlayer } = await supabase
+      const { data: existingPlayer } = await supabase
         .from('players')
         .select()
         .eq('name', name)
@@ -68,8 +71,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
         player = newPlayer;
       }
 
-      set(state => ({
-        players: [...state.players, player],
+      set(currentState => ({
+        players: [...currentState.players, player],
         selectedSeat: seatPosition,
       }));
 
@@ -85,9 +88,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   leaveGame: async (playerId: string) => {
     try {
-      set(state => ({
-        players: state.players.filter(p => p.id !== playerId),
-        playerHands: state.playerHands.filter(h => h.playerId !== playerId),
+      set(currentState => ({
+        players: currentState.players.filter(p => p.id !== playerId),
+        playerHands: currentState.playerHands.filter(h => h.playerId !== playerId),
       }));
 
       // If less than 2 players, reset game
@@ -119,13 +122,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
       if (!updatedPlayer) throw new Error('Failed to update player balance');
 
       // Update local state
-      set(state => ({
-        players: state.players.map(p => 
+      set(currentState => ({
+        players: currentState.players.map(p => 
           p.id === player.id ? updatedPlayer : p
         ),
         currentBet: amount,
         playerHands: [
-          ...state.playerHands,
+          ...currentState.playerHands,
           {
             id: crypto.randomUUID(),
             playerId: player.id,
@@ -146,20 +149,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   takeAction: async (action: PlayerAction) => {
-    const state = get();
-    const currentHand = state.playerHands.find(h => h.isTurn);
+    const { deck, playerHands } = get();
+    const currentHand = playerHands.find(h => h.isTurn);
     if (!currentHand) return;
 
     try {
       switch (action) {
         case 'hit': {
-          const { card, remainingDeck } = dealCard(state.deck);
+          const { card, remainingDeck } = dealCard(deck);
           const newCards = [...currentHand.cards, card];
           const isBust = calculateHandScore(newCards) > 21;
 
-          set(state => ({
+          set(currentState => ({
             deck: remainingDeck,
-            playerHands: state.playerHands.map(h =>
+            playerHands: currentState.playerHands.map(h =>
               h.id === currentHand.id
                 ? {
                     ...h,
@@ -179,8 +182,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
         }
 
         case 'stand': {
-          set(state => ({
-            playerHands: state.playerHands.map(h =>
+          set(currentState => ({
+            playerHands: currentState.playerHands.map(h =>
               h.id === currentHand.id
                 ? { ...h, status: 'stand', isTurn: false }
                 : h
@@ -204,18 +207,18 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const newDeck = createDeck();
     const { card: dealerCard, remainingDeck } = dealCard(newDeck, true);
 
-    set(state => ({
+    set({
       deck: remainingDeck,
       dealerHand: [dealerCard],
       dealerScore: calculateHandScore([dealerCard]),
       gamePhase: 'betting',
       currentPlayerIndex: 0,
       timer: 10,
-    }));
+    });
   },
 
   updateGameState: (newState: Partial<GameState>) => {
-    set(state => ({ ...state, ...newState }));
+    set(newState);
   },
 
   resetGame: () => {
@@ -223,30 +226,29 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   moveToNextPlayer: async () => {
-    const state = get();
-    const currentIndex = state.currentPlayerIndex;
-    const nextIndex = currentIndex + 1;
+    const { currentPlayerIndex, playerHands } = get();
+    const nextIndex = currentPlayerIndex + 1;
 
-    if (nextIndex >= state.playerHands.length) {
+    if (nextIndex >= playerHands.length) {
       // All players have finished, move to dealer's turn
       set({ gamePhase: 'dealer_turn' });
       await get().dealerPlay();
     } else {
       // Move to next player
-      set(state => ({
+      set({
         currentPlayerIndex: nextIndex,
-        playerHands: state.playerHands.map((h, i) => ({
+        playerHands: playerHands.map((h, i) => ({
           ...h,
           isTurn: i === nextIndex,
         })),
-      }));
+      });
     }
   },
 
   dealerPlay: async () => {
-    const state = get();
-    let currentDealerHand = [...state.dealerHand];
-    let currentDeck = [...state.deck];
+    const { dealerHand, deck } = get();
+    let currentDealerHand = [...dealerHand];
+    let currentDeck = [...deck];
 
     // Reveal dealer's hole card
     if (currentDealerHand.length > 0) {
@@ -260,20 +262,19 @@ export const useGameStore = create<GameStore>((set, get) => ({
       currentDeck = remainingDeck;
     }
 
-    set(state => ({
+    set({
       dealerHand: currentDealerHand,
       dealerScore: calculateHandScore(currentDealerHand),
       deck: currentDeck,
       gamePhase: 'payout',
-    }));
+    });
 
     // Handle payouts
     await get().handlePayouts();
   },
 
   handlePayouts: async () => {
-    const state = get();
-    const { dealerHand, playerHands, players } = state;
+    const { dealerHand, playerHands, players } = get();
 
     try {
       // Process each player's hand
@@ -303,11 +304,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
           if (!updatedPlayer) throw new Error('Failed to update player balance');
 
           // Update local state
-          set(state => ({
-            players: state.players.map(p =>
+          set(currentState => ({
+            players: currentState.players.map(p =>
               p.id === player.id ? updatedPlayer : p
             ),
-            playerHands: state.playerHands.map(h =>
+            playerHands: currentState.playerHands.map(h =>
               h.id === hand.id
                 ? {
                     ...h,

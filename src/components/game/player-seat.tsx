@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { Card } from '@/components/game/card';
 import { Chip } from '@/components/game/chip';

@@ -1,4 +1,6 @@
-import React, { useEffect } from 'react';
+'use client';
+
+import React from 'react';
 import { Dealer } from '@/components/game/dealer';
 import { PlayerSeat } from '@/components/game/player-seat';
 import { Actions } from '@/components/game/actions';
@@ -17,7 +19,6 @@ export function Table() {
     selectedSeat,
     timer,
     joinGame,
-    leaveGame,
     placeBet,
     takeAction,
   } = useGameStore();
