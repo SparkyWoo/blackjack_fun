@@ -68,8 +68,22 @@ export const useGameStore = create<GameStore>((set, get) => ({
           // Parse JSON strings back to objects
           const parsedGameState: Partial<GameState> = {
             id: latestGame.id,
-            deck: JSON.parse(latestGame.deck || '[]'),
-            dealerHand: JSON.parse(latestGame.dealer_hand || '[]'),
+            deck: (() => {
+              try {
+                return typeof latestGame.deck === 'string' ? JSON.parse(latestGame.deck || '[]') : (latestGame.deck || []);
+              } catch (error) {
+                console.error('Error parsing deck:', error);
+                return [];
+              }
+            })(),
+            dealerHand: (() => {
+              try {
+                return typeof latestGame.dealer_hand === 'string' ? JSON.parse(latestGame.dealer_hand || '[]') : (latestGame.dealer_hand || []);
+              } catch (error) {
+                console.error('Error parsing dealer hand:', error);
+                return [];
+              }
+            })(),
             dealerScore: latestGame.dealer_score,
             currentPlayerIndex: latestGame.current_player_index,
             gamePhase: latestGame.game_phase,
@@ -88,7 +102,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
               id: hand.id,
               playerId: hand.player_id,
               seatPosition: hand.seat_position,
-              cards: JSON.parse(hand.cards || '[]'),
+              cards: (() => {
+                try {
+                  return typeof hand.cards === 'string' ? JSON.parse(hand.cards || '[]') : (hand.cards || []);
+                } catch (error) {
+                  console.error('Error parsing cards for hand:', error);
+                  return [];
+                }
+              })(),
               betAmount: hand.bet_amount,
               status: hand.status,
               isTurn: hand.is_turn,

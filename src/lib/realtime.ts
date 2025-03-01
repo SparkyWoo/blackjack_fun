@@ -66,8 +66,22 @@ export function useRealtimeGame() {
           // Parse JSON strings back to objects
           const parsedUpdate: Partial<GameState> = {
             id: update.id,
-            deck: JSON.parse(update.deck),
-            dealerHand: JSON.parse(update.dealer_hand),
+            deck: (() => {
+              try {
+                return typeof update.deck === 'string' ? JSON.parse(update.deck) : update.deck;
+              } catch (error) {
+                console.error('Error parsing deck:', error);
+                return [];
+              }
+            })(),
+            dealerHand: (() => {
+              try {
+                return typeof update.dealer_hand === 'string' ? JSON.parse(update.dealer_hand) : update.dealer_hand;
+              } catch (error) {
+                console.error('Error parsing dealer hand:', error);
+                return [];
+              }
+            })(),
             dealerScore: update.dealer_score,
             currentPlayerIndex: update.current_player_index,
             gamePhase: update.game_phase as GameState['gamePhase'],
@@ -107,7 +121,14 @@ export function useRealtimeGame() {
             id: update.id,
             playerId: update.player_id,
             seatPosition: update.seat_position,
-            cards: JSON.parse(update.cards),
+            cards: (() => {
+              try {
+                return typeof update.cards === 'string' ? JSON.parse(update.cards) : update.cards;
+              } catch (error) {
+                console.error('Error parsing cards:', error);
+                return [];
+              }
+            })(),
             betAmount: update.bet_amount,
             status: update.status as PlayerHand['status'],
             isTurn: update.is_turn,
