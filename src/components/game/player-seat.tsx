@@ -11,6 +11,7 @@ interface PlayerSeatProps {
   hand?: PlayerHand;
   onJoin?: (seatNumber: number) => void;
   isCurrentPlayer?: boolean;
+  isOccupied?: boolean;
   className?: string;
 }
 
@@ -20,6 +21,7 @@ export function PlayerSeat({
   hand,
   onJoin,
   isCurrentPlayer = false,
+  isOccupied = false,
   className = '',
 }: PlayerSeatProps) {
   const isEmpty = !player;
@@ -94,6 +96,7 @@ export function PlayerSeat({
           ? 'ring-4 ring-yellow-400/50 bg-black/40 shadow-lg shadow-yellow-400/20' 
           : 'bg-black/30 shadow-lg'
         }
+        ${isOccupied && !player ? 'ring-2 ring-green-400/50' : ''}
         backdrop-blur-sm transition-all duration-300 ease-in-out
         border border-white/10
         ${className}
@@ -122,7 +125,10 @@ export function PlayerSeat({
           </button>
         ) : (
           <div className="space-y-2">
-            <div className="font-bold text-white text-lg tracking-wide">{player.name}</div>
+            <div className="font-bold text-white text-lg tracking-wide flex items-center justify-center">
+              {player.name}
+              <span className="ml-2 bg-green-500 w-2 h-2 rounded-full animate-pulse"></span>
+            </div>
             <div className="text-sm text-white bg-black/40 px-4 py-1.5 rounded-full inline-block border border-white/10 shadow-inner">
               ${player.balance.toLocaleString()}
             </div>

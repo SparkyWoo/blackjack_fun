@@ -44,17 +44,16 @@ export function Table() {
     // Only depend on initializeGameState to prevent unnecessary re-renders
   }, [initializeGameState]);
 
-  // Calculate seat positions in a semi-circle
+  // Calculate seat positions in a horizontal line
   const seatPositions = Array.from({ length: 7 }, (_, i) => {
-    // Create a semi-circle arrangement
-    const radius = 350; // Radius of the semi-circle
-    const totalAngle = 180; // Degrees in a semi-circle
-    const angleStep = totalAngle / (7 - 1); // Angle between each seat
-    const angle = (i * angleStep) * (Math.PI / 180); // Convert to radians
+    // Create a horizontal arrangement
+    const totalWidth = 800; // Total width of the arrangement
+    const seatWidth = totalWidth / 7; // Width per seat
+    const startX = -totalWidth / 2 + seatWidth / 2; // Start from the left
     
     return {
-      x: radius * Math.sin(angle) - (radius / 2), // Adjust to center
-      y: radius * Math.cos(angle) - 50, // Offset from bottom
+      x: startX + (i * seatWidth), // Position horizontally
+      y: 150, // Fixed vertical position (closer to the middle of the table)
     };
   });
 
@@ -142,7 +141,7 @@ export function Table() {
           </div>
 
           {/* Player Seats */}
-          <div className="absolute bottom-0 left-0 w-full h-full">
+          <div className="absolute bottom-[30%] left-0 w-full h-full">
             {seatPositions.map((pos, index) => {
               // Only show seats 0-6 (7 seats total)
               if (index > 6) return null;
@@ -157,7 +156,7 @@ export function Table() {
                   key={index}
                   style={{
                     position: 'absolute',
-                    bottom: `${pos.y}px`,
+                    top: `${pos.y}px`,
                     left: `calc(50% + ${pos.x}px)`,
                     transform: 'translate(-50%, 0)',
                   }}
@@ -174,6 +173,7 @@ export function Table() {
                       }
                     }}
                     isCurrentPlayer={currentPlayerIndex === index}
+                    isOccupied={!!player}
                   />
                 </div>
               );
@@ -181,7 +181,7 @@ export function Table() {
           </div>
         </div>
 
-        {/* Action Controls */}
+        {/* Action Controls - Always at the bottom */}
         {currentHand && gamePhase === 'player_turns' && (
           <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-30">
             <div className="p-4 bg-black/40 backdrop-blur-md rounded-xl border border-white/10 shadow-xl">
@@ -199,15 +199,16 @@ export function Table() {
           </div>
         )}
 
-        {/* Betting Controls */}
-        {selectedSeat !== null && gamePhase === 'betting' && (
+        {/* Betting Controls - Always at the bottom */}
+        {gamePhase === 'betting' && (
           <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-30">
             <div className="p-6 bg-black/40 backdrop-blur-md rounded-xl border border-white/10 shadow-xl">
               <BetControls
                 onPlaceBet={placeBet}
-                playerBalance={players.find(p => 
-                  playerHands.some(h => h.playerId === p.id && h.seatPosition === selectedSeat)
-                )?.balance || 0}
+                playerBalance={selectedSeat !== null ? 
+                  (players.find(p => 
+                    playerHands.some(h => h.playerId === p.id && h.seatPosition === selectedSeat)
+                  )?.balance || 0) : 0}
               />
             </div>
           </div>
