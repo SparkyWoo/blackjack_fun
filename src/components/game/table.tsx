@@ -28,17 +28,21 @@ export function Table() {
   } = useGameStore();
   
   // Initialize real-time subscriptions
-  const { initializeGameState: initializeRealtime } = useRealtimeGame();
+  useRealtimeGame();
 
   // Initialize game state on component mount
   useEffect(() => {
     const loadGame = async () => {
-      await initializeGameState();
-      initializeRealtime();
+      try {
+        await initializeGameState();
+      } catch (error) {
+        console.error('Failed to initialize game state:', error);
+      }
     };
     
     loadGame();
-  }, [initializeGameState, initializeRealtime]);
+    // Only depend on initializeGameState to prevent unnecessary re-renders
+  }, [initializeGameState]);
 
   // Calculate seat positions in a semi-circle
   const seatPositions = Array.from({ length: 7 }, (_, i) => {

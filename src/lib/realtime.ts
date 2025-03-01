@@ -169,69 +169,9 @@ export function useRealtimeGame() {
     };
   }, [gameId, updateGameState, players]);
 
-  // Function to initialize game state from database
-  const initializeGameState = async () => {
-    try {
-      // Check if there's an active game
-      const { data: gameData } = await supabase
-        .from('game_state')
-        .select('*')
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (gameData) {
-        // Parse JSON strings back to objects
-        const parsedGameState: Partial<GameState> = {
-          id: gameData.id,
-          deck: JSON.parse(gameData.deck),
-          dealerHand: JSON.parse(gameData.dealer_hand),
-          dealerScore: gameData.dealer_score,
-          currentPlayerIndex: gameData.current_player_index,
-          gamePhase: gameData.game_phase,
-          updatedAt: gameData.updated_at,
-        };
-
-        // Fetch player hands for this game
-        const { data: handData } = await supabase
-          .from('player_hands')
-          .select('*')
-          .eq('game_id', gameData.id);
-
-        if (handData) {
-          const parsedHands: PlayerHand[] = handData.map(hand => ({
-            id: hand.id,
-            playerId: hand.player_id,
-            seatPosition: hand.seat_position,
-            cards: JSON.parse(hand.cards),
-            betAmount: hand.bet_amount,
-            status: hand.status,
-            isTurn: hand.is_turn,
-            insuranceBet: hand.insurance_bet,
-            isSplit: hand.is_split,
-          }));
-
-          // Fetch players
-          const playerIds = Array.from(new Set(parsedHands.map(h => h.playerId)));
-          const { data: playerData } = await supabase
-            .from('players')
-            .select('*')
-            .in('id', playerIds);
-
-          if (playerData) {
-            // Update game state with all fetched data
-            useGameStore.setState({
-              ...parsedGameState,
-              playerHands: parsedHands,
-              players: playerData,
-            });
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error initializing game state:', error);
-    }
+  // We don't need this function anymore as it's handled in store.ts
+  // This prevents duplicate initialization and potential infinite loops
+  return { 
+    // Empty object to maintain the same return type
   };
-
-  return { initializeGameState };
 } 
