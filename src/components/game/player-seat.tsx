@@ -109,7 +109,7 @@ export function PlayerSeat({
       
       {/* Player Info */}
       <div className="mb-4 text-center w-full">
-        {isEmpty ? (
+        {isEmpty && !isOccupied ? (
           <button
             onClick={() => onJoin?.(seatNumber)}
             className="w-full px-6 py-3 
@@ -123,7 +123,7 @@ export function PlayerSeat({
           >
             Join Seat {seatNumber + 1}
           </button>
-        ) : (
+        ) : player ? (
           <div className="space-y-2">
             <div className="font-bold text-white text-lg tracking-wide flex items-center justify-center">
               {player.name}
@@ -131,6 +131,12 @@ export function PlayerSeat({
             </div>
             <div className="text-sm text-white bg-black/40 px-4 py-1.5 rounded-full inline-block border border-white/10 shadow-inner">
               ${player.balance.toLocaleString()}
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <div className="font-bold text-white text-lg tracking-wide flex items-center justify-center">
+              Reserved
             </div>
           </div>
         )}

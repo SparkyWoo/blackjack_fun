@@ -257,9 +257,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
       if (existingPlayer) {
         player = existingPlayer;
+        
+        // Update last played timestamp
+        await supabase
+          .from('players')
+          .update({ last_played_at: new Date().toISOString() })
+          .eq('id', player.id);
       } else {
         // Create new player with 10K balance as per PRD
-        const { data: newPlayer } = await supabase
+        const { data: newPlayer, error } = await supabase
           .from('players')
           .insert({
             name,
@@ -270,14 +276,26 @@ export const useGameStore = create<GameStore>((set, get) => ({
           .select()
           .single();
 
-        if (!newPlayer) throw new Error('Failed to create player');
+        if (error || !newPlayer) {
+          console.error('Failed to create player:', error);
+          throw new Error('Failed to create player');
+        }
+        
         player = newPlayer;
       }
 
+      // Check if player is already in the game
+      const isPlayerInGame = get().players.some(p => p.id === player.id);
+      
+      // Update state with the player and selected seat
       set(currentState => ({
-        players: [...currentState.players, player],
+        players: isPlayerInGame 
+          ? currentState.players 
+          : [...currentState.players, player],
         selectedSeat: seatPosition,
       }));
+
+      console.log('Player joined:', player, 'at seat', seatPosition);
 
       // Start a new round immediately when a player joins
       await get().startNewRound();

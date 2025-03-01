@@ -53,7 +53,7 @@ export function Table() {
     
     return {
       x: startX + (i * seatWidth), // Position horizontally
-      y: 150, // Fixed vertical position (closer to the middle of the table)
+      y: 250, // Increased vertical position to move seats lower
     };
   });
 
@@ -132,24 +132,33 @@ export function Table() {
           {/* Table inner border */}
           <div className="absolute inset-4 rounded-[50%] border-2 border-dashed border-yellow-500/20"></div>
           
-          {/* Dealer Area */}
-          <div className="absolute top-[10%] left-1/2 transform -translate-x-1/2 z-20">
+          {/* Dealer Area - Centered at the top */}
+          <div className="absolute top-[15%] left-1/2 transform -translate-x-1/2 z-20">
             <Dealer
               cards={dealerHand}
               score={dealerScore}
             />
           </div>
 
-          {/* Player Seats */}
-          <div className="absolute bottom-[30%] left-0 w-full h-full">
+          {/* Player Seats - Positioned below the dealer */}
+          <div className="absolute bottom-[15%] left-0 w-full">
             {seatPositions.map((pos, index) => {
               // Only show seats 0-6 (7 seats total)
               if (index > 6) return null;
               
-              const player = players.find(p => 
-                playerHands.some(h => h.playerId === p.id && h.seatPosition === index)
-              );
+              // Find player at this seat position
+              const player = players.find(p => {
+                // Check if this player is at this seat position
+                if (index === selectedSeat && p.id === players[players.length - 1]?.id) {
+                  return true;
+                }
+                // Or check if they have a hand at this position
+                return playerHands.some(h => h.playerId === p.id && h.seatPosition === index);
+              });
+              
               const hand = playerHands.find(h => h.seatPosition === index);
+              
+              const isOccupied = index === selectedSeat || !!player;
 
               return (
                 <div
@@ -173,7 +182,7 @@ export function Table() {
                       }
                     }}
                     isCurrentPlayer={currentPlayerIndex === index}
-                    isOccupied={!!player}
+                    isOccupied={isOccupied}
                   />
                 </div>
               );
@@ -200,15 +209,24 @@ export function Table() {
         )}
 
         {/* Betting Controls - Always at the bottom */}
-        {gamePhase === 'betting' && (
+        {gamePhase === 'betting' && selectedSeat !== null && (
           <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-30">
             <div className="p-6 bg-black/40 backdrop-blur-md rounded-xl border border-white/10 shadow-xl">
               <BetControls
                 onPlaceBet={placeBet}
-                playerBalance={selectedSeat !== null ? 
-                  (players.find(p => 
-                    playerHands.some(h => h.playerId === p.id && h.seatPosition === selectedSeat)
-                  )?.balance || 0) : 0}
+                playerBalance={(() => {
+                  // Find the current player based on selectedSeat
+                  const currentPlayer = players.find(p => {
+                    // This is the player who joined at the selected seat
+                    if (p.id === players[players.length - 1]?.id && selectedSeat !== null) {
+                      return true;
+                    }
+                    // Or check if they have a hand at this position
+                    return playerHands.some(h => h.playerId === p.id && h.seatPosition === selectedSeat);
+                  });
+                  
+                  return currentPlayer?.balance || 0;
+                })()}
                 timer={timer}
               />
             </div>
