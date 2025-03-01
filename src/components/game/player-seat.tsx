@@ -142,32 +142,41 @@ export function PlayerSeat({
         )}
       </div>
 
-      {/* Cards */}
+      {/* Cards - Display above the player */}
       {hasHand && (
-        <div className="relative flex justify-center mb-4 min-h-[100px]">
-          {hand.cards.map((card, index) => (
-            <Card
-              key={`${card.suit}-${card.rank}-${index}`}
-              card={card}
-              isDealing={false}
-              className={`
-                absolute
-                transform transition-all duration-300 ease-in-out
-                hover:-translate-y-2
-                ${index === 0 ? 'z-10' : `z-${10 + index}`}
-                translate-x-[${(index - (hand.cards.length - 1) / 2) * 30}px]
-              `}
-            />
-          ))}
-          
-          {/* Score Badge */}
-          {hand.cards.some(card => card.isFaceUp) && (
-            <div className="absolute -bottom-3 left-1/2 transform -translate-x-1/2 z-30">
-              <div className="px-2 py-1 bg-black/60 rounded-full text-white font-bold text-sm border border-white/10">
-                {calculateScore(hand.cards)}
+        <div className="absolute -top-32 left-1/2 transform -translate-x-1/2 min-h-[120px] min-w-[150px]">
+          <div className="relative flex justify-center">
+            {hand.cards.map((card, index) => {
+              // Calculate rotation and offset for fan effect
+              const rotation = (index - (hand.cards.length - 1) / 2) * 5; // Subtle rotation
+              const translateX = (index - (hand.cards.length - 1) / 2) * 20; // Horizontal spread
+              const translateY = index * -5; // Slight vertical staggering
+              
+              return (
+                <Card
+                  key={`${card.suit}-${card.rank}-${index}`}
+                  card={card}
+                  isDealing={false}
+                  className={`
+                    absolute
+                    transform transition-all duration-300 ease-in-out
+                    hover:-translate-y-2
+                    ${index === 0 ? 'z-10' : `z-${10 + index}`}
+                    translate-x-[${translateX}px] translate-y-[${translateY}px] rotate-[${rotation}deg]
+                  `}
+                />
+              );
+            })}
+            
+            {/* Score Badge */}
+            {hand.cards.some(card => card.isFaceUp) && (
+              <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 z-30">
+                <div className="px-3 py-1 bg-black/70 rounded-full text-white font-bold text-sm border border-white/20 shadow-lg">
+                  {calculateScore(hand.cards)}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
 

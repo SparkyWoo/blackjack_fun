@@ -23,34 +23,39 @@ export function Dealer({ cards, score, className = '' }: DealerProps) {
         </div>
       )}
       
-      {/* Dealer Cards */}
-      <div className="relative flex justify-center">
-        {cards.map((card, index) => (
-          <Card
-            key={`${card.suit}-${card.rank}-${index}`}
-            card={card}
-            isDealing={false}
-            className={`
-              absolute
-              transform transition-all duration-300 ease-in-out
-              ${index === 0 ? 'z-10' : `z-${10 + index}`}
-              ${getCardOffset(index, cards.length)}
-            `}
-          />
-        ))}
+      {/* Dealer Cards - Displayed in a fan-like arrangement */}
+      <div className="relative h-40 w-40 flex items-center justify-center">
+        {cards.length === 0 ? (
+          // Empty card placeholder when no cards
+          <div className="w-24 h-36 rounded-lg border-2 border-dashed border-white/20 flex items-center justify-center">
+            <span className="text-white/30 text-sm">Cards will appear here</span>
+          </div>
+        ) : (
+          // Actual cards with fan-like arrangement
+          cards.map((card, index) => {
+            // Calculate rotation and offset for fan effect
+            const rotation = (index - (cards.length - 1) / 2) * 10; // -10 to 10 degrees
+            const translateX = (index - (cards.length - 1) / 2) * 15; // -15px to 15px
+            
+            return (
+              <Card
+                key={`${card.suit}-${card.rank}-${index}`}
+                card={card}
+                isDealing={false}
+                className={`
+                  absolute
+                  transform transition-all duration-300 ease-in-out
+                  ${index === 0 ? 'z-10' : `z-${10 + index}`}
+                  translate-x-[${translateX}px] rotate-[${rotation}deg]
+                  ${index === 0 ? 'shadow-xl' : ''}
+                `}
+              />
+            );
+          })
+        )}
       </div>
     </div>
   );
 }
 
-// Helper function to calculate card offset based on position
-function getCardOffset(index: number, totalCards: number): string {
-  if (totalCards <= 1) return '';
-  
-  const maxOffset = Math.min(totalCards * 15, 60); // Maximum offset in pixels
-  const centerIndex = (totalCards - 1) / 2;
-  const relativeIndex = index - centerIndex;
-  const offset = relativeIndex * (maxOffset / totalCards);
-  
-  return `translate-x-[${offset}px]`;
-} 
+export default Dealer; 

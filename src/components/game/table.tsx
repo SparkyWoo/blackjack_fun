@@ -9,6 +9,7 @@ import { useGameStore } from '@/lib/store';
 import { useRealtimeGame } from '@/lib/realtime';
 import { canDoubleDown, canSplit, canSurrender } from '@/lib/blackjack';
 import type { GamePhase } from '@/lib/types';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export function Table() {
   const {
@@ -53,7 +54,7 @@ export function Table() {
     
     return {
       x: startX + (i * seatWidth), // Position horizontally
-      y: 250, // Increased vertical position to move seats lower
+      y: 280, // Increased vertical position to move seats lower and make room for cards
     };
   });
 
@@ -66,37 +67,45 @@ export function Table() {
   const currentHand = playerHands.find(h => h.isTurn);
 
   // Function to get the game phase display text
-  const getGamePhaseDisplay = (phase: GamePhase): string => {
+  const getGamePhaseDisplay = (phase: GamePhase): { text: string; icon: string } => {
     switch (phase) {
       case 'waiting':
-        return '🕒 WAITING FOR PLAYERS';
+        return { text: 'WAITING FOR PLAYERS', icon: '🕒' };
       case 'betting':
-        return '💰 PLACE YOUR BETS';
+        return { text: 'PLACE YOUR BETS', icon: '💰' };
       case 'player_turns':
-        return '👤 PLAYER TURNS';
+        return { text: 'PLAYER TURNS', icon: '👤' };
       case 'dealer_turn':
-        return '🎩 DEALER TURN';
+        return { text: 'DEALER TURN', icon: '🎩' };
       case 'payout':
-        return '🏆 SHOWDOWN';
+        return { text: 'SHOWDOWN', icon: '🏆' };
       case 'reshuffling':
-        return '🔄 RESHUFFLING DECKS';
+        return { text: 'RESHUFFLING DECKS', icon: '🔄' };
       default:
         // Handle any unexpected phase values
-        return `${String(phase).replace('_', ' ').toUpperCase()}`;
+        return { 
+          text: String(phase).replace('_', ' ').toUpperCase(),
+          icon: '♠️'
+        };
     }
   };
 
   // Show loading state
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-green-900">
-        <div className="bg-black/50 p-8 rounded-xl backdrop-blur-md border border-white/10 shadow-2xl">
+      <div className="flex items-center justify-center h-screen bg-gradient-to-b from-green-900 to-green-800">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className="bg-black/50 p-8 rounded-xl backdrop-blur-md border border-white/10 shadow-2xl"
+        >
           <div className="flex flex-col items-center">
             <div className="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin mb-4"></div>
             <h2 className="text-2xl font-bold text-white">Loading Game...</h2>
             <p className="text-gray-300 mt-2">Connecting to the blackjack table</p>
           </div>
-        </div>
+        </motion.div>
       </div>
     );
   }
@@ -110,21 +119,35 @@ export function Table() {
         
         {/* Ambient light effect */}
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-yellow-400/10 blur-3xl"></div>
+        
+        {/* Additional ambient lights */}
+        <div className="absolute top-3/4 left-1/4 w-[400px] h-[400px] rounded-full bg-blue-400/5 blur-3xl"></div>
+        <div className="absolute top-1/3 right-1/4 w-[300px] h-[300px] rounded-full bg-purple-400/5 blur-3xl"></div>
       </div>
       
       {/* Main table surface */}
       <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
         {/* Game Phase Indicator */}
-        <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-30">
-          <div className="relative">
-            <div className="absolute inset-0 bg-black/20 rounded-full blur-md"></div>
-            <div className="relative px-6 py-2 bg-black/50 backdrop-blur-sm rounded-full border border-white/10">
-              <span className="text-white font-bold tracking-wider">
-                {getGamePhaseDisplay(gamePhase)}
-              </span>
+        <AnimatePresence mode="wait">
+          <motion.div 
+            key={gamePhase}
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="absolute top-6 left-1/2 transform -translate-x-1/2 z-30"
+          >
+            <div className="relative">
+              <div className="absolute inset-0 bg-black/20 rounded-full blur-md"></div>
+              <div className="relative px-6 py-2 bg-black/50 backdrop-blur-sm rounded-full border border-white/10 shadow-lg">
+                <span className="text-white font-bold tracking-wider flex items-center gap-2">
+                  <span>{getGamePhaseDisplay(gamePhase).icon}</span>
+                  <span>{getGamePhaseDisplay(gamePhase).text}</span>
+                </span>
+              </div>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </AnimatePresence>
 
         {/* Table felt with border */}
         <div className="relative w-[900px] h-[500px] rounded-[50%] bg-green-700 border-8 border-brown-800 shadow-2xl overflow-hidden">
@@ -134,8 +157,13 @@ export function Table() {
           {/* Table inner border */}
           <div className="absolute inset-4 rounded-[50%] border-2 border-dashed border-yellow-500/20"></div>
           
+          {/* Table center logo/emblem */}
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full bg-green-800/50 flex items-center justify-center">
+            <div className="text-4xl opacity-20">♠️</div>
+          </div>
+          
           {/* Dealer Area - Centered at the top */}
-          <div className="absolute top-[15%] left-1/2 transform -translate-x-1/2 z-20">
+          <div className="absolute top-[10%] left-1/2 transform -translate-x-1/2 z-20">
             <Dealer
               cards={dealerHand}
               score={dealerScore}
@@ -161,9 +189,10 @@ export function Table() {
               const hand = playerHands.find(h => h.seatPosition === index);
               
               const isOccupied = index === selectedSeat || !!player;
+              const isCurrentTurn = hand?.isTurn;
 
               return (
-                <div
+                <motion.div
                   key={index}
                   style={{
                     position: 'absolute',
@@ -171,7 +200,15 @@ export function Table() {
                     left: `calc(50% + ${pos.x}px)`,
                     transform: 'translate(-50%, 0)',
                   }}
-                  className="transition-all duration-500 ease-in-out hover:scale-105 z-20"
+                  animate={isCurrentTurn ? { 
+                    scale: [1, 1.05, 1],
+                    transition: { 
+                      repeat: Infinity, 
+                      duration: 2,
+                      ease: "easeInOut" 
+                    }
+                  } : {}}
+                  className="z-20"
                 >
                   <PlayerSeat
                     seatNumber={index}
@@ -186,91 +223,136 @@ export function Table() {
                     isCurrentPlayer={currentPlayerIndex === index}
                     isOccupied={isOccupied}
                   />
-                </div>
+                </motion.div>
               );
             })}
           </div>
         </div>
 
-        {/* Action Controls - Always at the bottom */}
-        {currentHand && gamePhase === 'player_turns' && (
-          <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-30">
-            <div className="p-4 bg-black/40 backdrop-blur-md rounded-xl border border-white/10 shadow-xl">
-              <Actions
-                onAction={handleAction}
-                canHit={true}
-                canStand={true}
-                canDouble={canDoubleDown(currentHand.cards)}
-                canSplit={canSplit(currentHand.cards)}
-                canSurrender={canSurrender(currentHand.cards)}
-                canInsurance={dealerHand[0]?.rank === 'A'}
-                timer={timer}
-              />
-            </div>
-          </div>
-        )}
+        {/* Action Controls - Always at the bottom for the current player */}
+        <AnimatePresence>
+          {gamePhase === 'player_turns' && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              transition={{ duration: 0.3 }}
+              className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-30"
+            >
+              <div className="p-4 bg-black/70 backdrop-blur-md rounded-xl border border-white/20 shadow-xl">
+                <Actions
+                  onAction={handleAction}
+                  canHit={!!currentHand}
+                  canStand={!!currentHand}
+                  canDouble={!!currentHand && canDoubleDown(currentHand.cards)}
+                  canSplit={!!currentHand && canSplit(currentHand.cards)}
+                  canSurrender={!!currentHand && canSurrender(currentHand.cards)}
+                  canInsurance={!!dealerHand[0] && dealerHand[0].rank === 'A'}
+                  timer={timer}
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Timer Display */}
-        {gamePhase === 'betting' && timer !== null && (
-          <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-50">
-            <div className="px-4 py-2 bg-black/70 rounded-lg border border-yellow-500/30 shadow-lg">
-              <div className="text-white font-medium text-base flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Betting: {timer}s
+        <AnimatePresence>
+          {gamePhase === 'betting' && timer !== null && (
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="absolute top-20 left-1/2 transform -translate-x-1/2 z-50"
+            >
+              <div className="px-4 py-2 bg-black/70 rounded-lg border border-yellow-500/30 shadow-lg">
+                <div className="text-white font-medium text-base">
+                  Betting: {timer}s
+                </div>
               </div>
-            </div>
-          </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Reshuffling Timer Display */}
-        {gamePhase === 'reshuffling' && timer !== null && (
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50">
-            <div className="px-8 py-6 bg-black/80 rounded-xl border border-yellow-500/50 shadow-2xl">
-              <div className="text-white font-bold text-2xl flex flex-col items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mb-4 text-yellow-400 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                <span className="mb-2">RESHUFFLING DECKS</span>
-                <span className="text-xl">{timer}s</span>
-              </div>
-            </div>
-          </div>
-        )}
+        <AnimatePresence>
+          {gamePhase === 'reshuffling' && timer !== null && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50"
+            >
+              <motion.div 
+                animate={{ 
+                  boxShadow: ['0 0 20px rgba(234, 179, 8, 0.2)', '0 0 40px rgba(234, 179, 8, 0.4)', '0 0 20px rgba(234, 179, 8, 0.2)'],
+                }}
+                transition={{ 
+                  duration: 2, 
+                  repeat: Infinity,
+                  ease: "easeInOut" 
+                }}
+                className="px-8 py-6 bg-black/80 rounded-xl border border-yellow-500/50"
+              >
+                <div className="text-white font-bold text-2xl flex flex-col items-center">
+                  <span className="mb-2">RESHUFFLING DECKS</span>
+                  <span className="text-xl">{timer}s</span>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Betting Controls */}
-        {gamePhase === 'betting' && selectedSeat !== null && (
-          <div className="fixed bottom-0 left-0 right-0 flex justify-center items-center z-50 pb-8">
-            <div className="bg-black/80 p-4 rounded-xl border border-yellow-500/30 shadow-lg max-w-md w-full mx-auto">
-              <BetControls
-                onPlaceBet={(amount) => {
-                  if (selectedSeat !== null) {
-                    placeBet(selectedSeat, amount);
-                  }
-                }}
-                playerBalance={(() => {
-                  // Find the current player based on the selected seat
-                  const currentPlayer = players.find(p => {
-                    // Check if this player is the one who joined at the selected seat
-                    if (p.id === players[players.length - 1]?.id && selectedSeat !== null) {
-                      return true;
+        <AnimatePresence>
+          {gamePhase === 'betting' && selectedSeat !== null && (
+            <motion.div 
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 50 }}
+              transition={{ duration: 0.4, type: "spring" }}
+              className="fixed bottom-0 left-0 right-0 flex justify-center items-center z-50 pb-8"
+            >
+              <div className="bg-black/80 p-4 rounded-xl border border-yellow-500/30 shadow-lg max-w-md w-full mx-auto">
+                <BetControls
+                  onPlaceBet={(amount) => {
+                    if (selectedSeat !== null) {
+                      placeBet(selectedSeat, amount);
                     }
-                    // Or check if this player has a hand at the selected seat
-                    return playerHands.some(h => h.playerId === p.id && h.seatPosition === selectedSeat);
-                  });
-                  return currentPlayer?.balance || 0;
-                })()}
-                existingBet={playerHands.find(h => h.seatPosition === selectedSeat)?.betAmount || 0}
-                className="w-full"
-              />
-            </div>
-          </div>
-        )}
+                  }}
+                  playerBalance={(() => {
+                    // Find the current player based on the selected seat
+                    const currentPlayer = players.find(p => {
+                      // Check if this player is the one who joined at the selected seat
+                      if (p.id === players[players.length - 1]?.id && selectedSeat !== null) {
+                        return true;
+                      }
+                      // Or check if this player has a hand at the selected seat
+                      return playerHands.some(h => h.playerId === p.id && h.seatPosition === selectedSeat);
+                    });
+                    return currentPlayer?.balance || 0;
+                  })()}
+                  existingBet={playerHands.find(h => h.seatPosition === selectedSeat)?.betAmount || 0}
+                  className="w-full"
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
         
         {/* Connection Status Indicator */}
-        <div className="absolute bottom-2 right-2 z-30 flex items-center space-x-2 px-3 py-1 bg-black/30 backdrop-blur-sm rounded-full">
-          <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+        <div className="absolute bottom-2 right-2 z-30 flex items-center space-x-2 px-3 py-1 bg-black/40 backdrop-blur-sm rounded-full shadow-lg">
+          <motion.div 
+            animate={{ 
+              scale: [1, 1.2, 1],
+              opacity: [0.7, 1, 0.7],
+            }}
+            transition={{ 
+              duration: 2, 
+              repeat: Infinity,
+              ease: "easeInOut" 
+            }}
+            className="w-2 h-2 rounded-full bg-green-500"
+          ></motion.div>
           <span className="text-xs text-white">Live</span>
         </div>
       </div>

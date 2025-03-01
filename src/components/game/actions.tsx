@@ -26,7 +26,7 @@ export function Actions({
 }: ActionsProps) {
   // Get button style based on action type
   const getButtonStyle = (action: PlayerAction, enabled: boolean) => {
-    if (!enabled) return 'bg-gray-700/50 text-gray-400';
+    if (!enabled) return 'bg-gray-700/50 text-gray-400 cursor-not-allowed';
     
     switch (action) {
       case 'hit':
@@ -46,12 +46,32 @@ export function Actions({
     }
   };
 
+  // Get icon for each action
+  const getActionIcon = (action: PlayerAction) => {
+    switch (action) {
+      case 'hit':
+        return '+';
+      case 'stand':
+        return '✋';
+      case 'double':
+        return '2x';
+      case 'split':
+        return '⊥';
+      case 'surrender':
+        return '🏳️';
+      case 'insurance':
+        return '🛡️';
+      default:
+        return '';
+    }
+  };
+
   const ActionButton = ({ action, label, enabled }: { action: PlayerAction; label: string; enabled: boolean }) => (
     <button
       onClick={() => enabled && onAction(action)}
       disabled={!enabled}
       className={`
-        px-5 py-2.5 rounded-lg font-bold
+        px-5 py-3 rounded-lg font-bold
         ${getButtonStyle(action, enabled)}
         shadow-lg shadow-black/20
         transition-all duration-200 ease-in-out
@@ -59,26 +79,31 @@ export function Actions({
         disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none
         border border-white/10
         backdrop-filter backdrop-blur-sm
+        flex flex-col items-center justify-center
+        min-w-[80px]
       `}
     >
-      {label}
+      <span className="text-lg mb-1">{getActionIcon(action)}</span>
+      <span>{label}</span>
     </button>
   );
 
   return (
     <div className={`flex flex-col items-center space-y-4 ${className}`}>
+      {/* Title */}
+      <div className="text-white font-bold text-xl mb-2">Your Turn</div>
+      
       {/* Timer */}
       {timer !== null && (
         <div className="relative mb-2">
-          <div className="absolute inset-0 bg-black/20 rounded-full blur-md"></div>
-          <div className="relative px-4 py-1 bg-black/40 backdrop-blur-sm rounded-full border border-white/10">
-            <span className="text-2xl font-bold text-white">{timer}s</span>
+          <div className="px-4 py-1 bg-black/60 rounded-full border border-white/20 shadow-lg">
+            <span className="text-xl font-bold text-white">{timer}s</span>
           </div>
         </div>
       )}
 
       {/* Action Buttons */}
-      <div className="flex flex-wrap justify-center gap-2 max-w-md">
+      <div className="flex flex-wrap justify-center gap-3 max-w-md">
         <ActionButton action="hit" label="Hit" enabled={canHit} />
         <ActionButton action="stand" label="Stand" enabled={canStand} />
         <ActionButton action="double" label="Double" enabled={canDouble} />
