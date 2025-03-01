@@ -1,202 +1,129 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Chip } from '@/components/game/chip';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export interface BetControlsProps {
+interface BetControlsProps {
   onPlaceBet: (amount: number) => void;
   playerBalance: number;
   existingBet?: number;
   className?: string;
 }
 
-const CHIP_VALUES = [5, 25, 100, 500, 1000];
-
-export function BetControls({ onPlaceBet, playerBalance, existingBet = 0, className = '' }: BetControlsProps) {
-  const [selectedAmount, setSelectedAmount] = useState<number>(0);
-  const [currentBet, setCurrentBet] = useState<number[]>([]);
-  const [showFeedback, setShowFeedback] = useState<boolean>(false);
-  const [feedbackMessage, setFeedbackMessage] = useState<string>('');
-
-  // Reset the bet if existingBet changes
-  useEffect(() => {
-    if (existingBet > 0) {
-      setCurrentBet([]);
-      setSelectedAmount(0);
-    }
-  }, [existingBet]);
-
-  const handleAddChip = (value: number) => {
-    if (getTotalBet() + value <= playerBalance) {
-      setCurrentBet([...currentBet, value]);
-      setSelectedAmount(getTotalBet() + value);
-      
-      // Show feedback
-      setFeedbackMessage(`+$${value}`);
-      setShowFeedback(true);
-      setTimeout(() => setShowFeedback(false), 800);
-    } else {
-      // Show insufficient funds feedback
-      setFeedbackMessage('Insufficient funds');
-      setShowFeedback(true);
-      setTimeout(() => setShowFeedback(false), 1200);
+export function BetControls({
+  onPlaceBet,
+  playerBalance,
+  existingBet = 0,
+  className = '',
+}: BetControlsProps) {
+  const [currentBet, setCurrentBet] = useState<number>(existingBet);
+  
+  // Available chip denominations
+  const chipValues = [1, 5, 10, 25, 100, 500];
+  
+  // Add to current bet
+  const addToBet = (amount: number) => {
+    if (currentBet + amount <= playerBalance) {
+      setCurrentBet(prev => prev + amount);
     }
   };
-
-  const handleClearBet = () => {
-    setCurrentBet([]);
-    setSelectedAmount(0);
+  
+  // Reset current bet
+  const resetBet = () => {
+    setCurrentBet(0);
   };
-
-  const getTotalBet = () => {
-    return currentBet.reduce((sum, chip) => sum + chip, 0);
-  };
-
-  const handlePlaceBet = () => {
-    if (selectedAmount > 0 && selectedAmount <= playerBalance) {
-      onPlaceBet(selectedAmount);
-      setSelectedAmount(0);
-      setCurrentBet([]);
+  
+  // Place the bet
+  const placeBet = () => {
+    if (currentBet > 0) {
+      onPlaceBet(currentBet);
     }
   };
-
+  
+  // Chip component
+  const Chip = ({ value, onClick, disabled }: { value: number; onClick: () => void; disabled: boolean }) => {
+    // Determine chip color class based on value
+    const getChipClass = () => {
+      return `chip chip-${value}`;
+    };
+    
+    return (
+      <motion.button
+        whileHover={{ scale: disabled ? 1 : 1.1, y: disabled ? 0 : -5 }}
+        whileTap={{ scale: disabled ? 1 : 0.95 }}
+        className={`relative w-12 h-12 ${getChipClass()} ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+        onClick={onClick}
+        disabled={disabled}
+      >
+        <span className="text-sm font-bold">${value}</span>
+      </motion.button>
+    );
+  };
+  
   return (
-    <div className={`flex flex-col items-center w-full ${className}`}>
-      {/* Available Balance and Current Bet */}
-      <div className="flex items-center justify-between w-full mb-4 px-2">
-        <div className="text-white text-sm bg-black/40 px-3 py-1 rounded-full">
-          Balance: <span className="font-bold text-green-400">${playerBalance.toLocaleString()}</span>
+    <div className={`flex flex-col ${className}`}>
+      {/* Current bet display */}
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          <h3 className="text-sm text-gray-300 mb-1">Your Balance</h3>
+          <p className="text-lg font-bold">${playerBalance}</p>
         </div>
-        {existingBet > 0 && (
-          <div className="text-white text-sm bg-black/40 px-3 py-1 rounded-full">
-            Current Bet: <span className="font-bold text-yellow-400">${existingBet}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Current Bet Display */}
-      <div className="relative min-h-[100px] w-full flex items-center justify-center mb-6">
-        <AnimatePresence>
-          {showFeedback && (
-            <motion.div
-              initial={{ opacity: 0, y: 0 }}
-              animate={{ opacity: 1, y: -20 }}
-              exit={{ opacity: 0 }}
-              className={`absolute z-50 font-bold text-lg ${
-                feedbackMessage.includes('+') ? 'text-green-400' : 'text-red-400'
-              }`}
-            >
-              {feedbackMessage}
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {currentBet.length > 0 ? (
-          <div className="relative h-24 w-40">
-            {/* Stack of chips */}
-            {currentBet.map((value, index) => (
-              <motion.div 
-                key={index}
-                className="absolute left-1/2 transform -translate-x-1/2"
-                initial={{ y: -20, opacity: 0 }}
-                animate={{ 
-                  y: 0, 
-                  opacity: 1,
-                  bottom: `${index * 4}px`,
-                }}
-                transition={{ 
-                  type: "spring", 
-                  stiffness: 300, 
-                  damping: 20,
-                  delay: index * 0.05
-                }}
-                style={{ 
-                  zIndex: index
-                }}
-              >
-                <Chip value={value} disabled />
-              </motion.div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-gray-400 italic bg-black/30 px-4 py-2 rounded-lg">
-            Select chips to place a bet
-          </div>
-        )}
         
-        {/* Total bet amount */}
-        {selectedAmount > 0 && (
-          <motion.div 
-            className="absolute -bottom-6 left-1/2 transform -translate-x-1/2"
-            initial={{ scale: 0.8 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+        <div className="text-center">
+          <h3 className="text-sm text-gray-300 mb-1">Current Bet</h3>
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={currentBet}
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              className="text-2xl font-bold text-yellow-400"
+            >
+              ${currentBet}
+            </motion.p>
+          </AnimatePresence>
+        </div>
+        
+        <div>
+          <button
+            onClick={resetBet}
+            className="px-3 py-1 bg-red-800/80 hover:bg-red-700 rounded text-sm font-medium transition-colors"
+            disabled={currentBet === 0}
           >
-            <div className="bg-black/70 px-4 py-1.5 rounded-full text-white font-bold text-sm border border-white/20 shadow-lg shadow-black/30">
-              ${selectedAmount.toLocaleString()}
-            </div>
-          </motion.div>
-        )}
+            Reset
+          </button>
+        </div>
       </div>
-
-      {/* Chip Selection */}
-      <div className="flex flex-wrap justify-center gap-3 mb-5 w-full">
-        {CHIP_VALUES.map((value) => (
-          <motion.div 
+      
+      {/* Chips */}
+      <div className="flex justify-center gap-2 mb-4">
+        {chipValues.map((value) => (
+          <Chip
             key={value}
-            className="transform transition-all duration-200 hover:scale-110 hover:-translate-y-1"
-            whileHover={{ scale: 1.1, y: -5 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Chip
-              value={value}
-              onClick={() => handleAddChip(value)}
-              disabled={value > playerBalance - getTotalBet()}
-            />
-          </motion.div>
+            value={value}
+            onClick={() => addToBet(value)}
+            disabled={currentBet + value > playerBalance}
+          />
         ))}
       </div>
-
-      {/* Action Buttons */}
-      <div className="flex space-x-5 w-full justify-center">
-        {/* Clear Bet Button */}
-        <motion.button
-          onClick={handleClearBet}
-          disabled={selectedAmount === 0}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className={`
-            px-6 py-2.5 rounded-lg font-bold
-            bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400
-            text-white shadow-lg shadow-black/30
-            transition-all duration-200 ease-in-out
-            disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none
-            border border-white/20
-          `}
-        >
-          Clear
-        </motion.button>
-
-        {/* Place Bet Button */}
-        <motion.button
-          onClick={handlePlaceBet}
-          disabled={selectedAmount === 0 || selectedAmount > playerBalance}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className={`
-            px-6 py-2.5 rounded-lg font-bold
-            bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400
-            text-white shadow-lg shadow-black/30
-            transition-all duration-200 ease-in-out
-            disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none
-            border border-white/20
-            ${selectedAmount > 0 ? 'animate-pulse' : ''}
-          `}
-        >
-          Place Bet
-        </motion.button>
-      </div>
+      
+      {/* Place bet button */}
+      <motion.button
+        whileHover={{ scale: currentBet > 0 ? 1.03 : 1 }}
+        whileTap={{ scale: currentBet > 0 ? 0.97 : 1 }}
+        className={`py-2 rounded-md font-bold text-white transition-all duration-200 ${
+          currentBet > 0
+            ? 'bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 shadow-lg'
+            : 'bg-gray-700 cursor-not-allowed'
+        }`}
+        onClick={placeBet}
+        disabled={currentBet === 0}
+      >
+        <div className="flex items-center justify-center">
+          <span className="mr-2">🎲</span>
+          <span>PLACE BET</span>
+        </div>
+      </motion.button>
     </div>
   );
 } 

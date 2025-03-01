@@ -6,37 +6,39 @@
   --foreground-rgb: 255, 255, 255;
   --background-start-rgb: 0, 0, 0;
   --background-end-rgb: 0, 0, 0;
+  --felt-color: #0a5c36;
+  --felt-border: #084a2b;
+  --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
 }
 
 body {
   color: rgb(var(--foreground-rgb));
   background: linear-gradient(
-    to bottom,
-    transparent,
-    rgb(var(--background-end-rgb))
-  )
-  rgb(var(--background-start-rgb));
-  min-height: 100vh;
+      to bottom,
+      rgb(var(--background-start-rgb)),
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-end-rgb));
 }
 
 /* Custom animations for the blackjack game */
 @keyframes deal {
   0% {
     opacity: 0;
-    transform: translateY(-100px) rotate(-20deg);
+    transform: translateY(-100px) scale(0.8);
   }
   100% {
     opacity: 1;
-    transform: translateY(0) rotate(0);
+    transform: translateY(0) scale(1);
   }
 }
 
 @keyframes shine {
   0% {
-    transform: translateX(-100%) translateY(-100%);
+    background-position: -100% 0;
   }
   100% {
-    transform: translateX(100%) translateY(100%);
+    background-position: 200% 0;
   }
 }
 
@@ -45,7 +47,7 @@ body {
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-10px);
+    transform: translateY(-5px);
   }
 }
 
@@ -61,21 +63,26 @@ body {
 @keyframes bounce {
   0%, 100% {
     transform: translateY(0);
-    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
   }
   50% {
     transform: translateY(-10px);
-    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
   }
 }
 
-/* Custom utility classes */
+/* Animation utility classes */
 .animate-deal {
   animation: deal 0.5s ease-out forwards;
 }
 
 .animate-shine {
-  animation: shine 2s linear infinite;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  background-size: 200% 100%;
+  animation: shine 2s infinite;
 }
 
 .animate-float {
@@ -83,70 +90,131 @@ body {
 }
 
 .animate-flip {
-  animation: flip 0.5s ease-out forwards;
+  animation: flip 0.6s ease-out forwards;
 }
 
-.animate-bounce-slow {
-  animation: bounce 2s infinite;
+.animate-bounce {
+  animation: bounce 0.5s ease-in-out;
 }
 
-/* Custom styles for the blackjack table */
+/* Custom styles for the blackjack game */
 .bg-felt {
-  background-color: #277245;
-  background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23216b3f' fill-opacity='0.4' fill-rule='evenodd'%3E%3Cpath d='M0 40L40 0H20L0 20M40 40V20L20 40'/%3E%3C/g%3E%3C/svg%3E");
+  background-color: var(--felt-color);
 }
 
 .border-felt {
-  border-color: #8B4513;
+  border-color: var(--felt-border);
 }
 
 .shadow-card {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-}
-
-.shadow-chip {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--card-shadow);
 }
 
 /* Glass morphism effect */
 .glass {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 /* Card positioning styles */
-.dealer-area {
-  z-index: 30;
-}
-
-/* Ensure SVG cards display properly */
-.card-svg {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  background-color: white;
-  border-radius: 0.5rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-}
-
-/* Fan effect for dealer cards */
 .dealer-cards-fan {
   position: relative;
-  min-height: 150px;
-  min-width: 200px;
+  min-height: 100px;
+  min-width: 150px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* Fan effect for player cards */
 .player-cards-fan {
   position: absolute;
-  top: -150px;
+  top: -100px;
   left: 50%;
   transform: translateX(-50%);
-  min-height: 150px;
-  min-width: 200px;
+  min-height: 100px;
+  min-width: 150px;
+}
+
+/* Card SVG styling */
+.card-svg {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background-color: white;
+  border-radius: 0.375rem;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.2));
+  transition: transform 0.2s ease;
+}
+
+/* Vlackjack-inspired styles */
+.vlackjack-table {
+  background-color: var(--felt-color);
+  border: 8px solid var(--felt-border);
+  box-shadow: 
+    0 0 0 2px rgba(0, 0, 0, 0.3),
+    0 0 30px 5px rgba(0, 0, 0, 0.5),
+    inset 0 0 20px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Button styles */
+.vlackjack-button {
+  @apply px-4 py-2 rounded-md font-medium transition-all duration-200;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.vlackjack-button:hover {
+  @apply transform scale-105;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.07));
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.vlackjack-button:active {
+  @apply transform scale-95;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.1));
+}
+
+/* Chip styles */
+.chip {
+  @apply relative rounded-full flex items-center justify-center font-bold text-white;
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.3),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.2),
+    inset 0 2px 0 rgba(255, 255, 255, 0.2);
+}
+
+.chip::before {
+  content: '';
+  @apply absolute inset-1 rounded-full border-2 border-white/20;
+}
+
+.chip-1 {
+  background: linear-gradient(to bottom, #f87171, #dc2626);
+}
+
+.chip-5 {
+  background: linear-gradient(to bottom, #60a5fa, #2563eb);
+}
+
+.chip-10 {
+  background: linear-gradient(to bottom, #34d399, #059669);
+}
+
+.chip-25 {
+  background: linear-gradient(to bottom, #a78bfa, #7c3aed);
+}
+
+.chip-100 {
+  background: linear-gradient(to bottom, #fbbf24, #d97706);
+}
+
+.chip-500 {
+  background: linear-gradient(to bottom, #9ca3af, #4b5563);
+}
+
+/* Debug outline for development */
+.debug {
+  outline: 1px solid red;
 } 

@@ -1,118 +1,126 @@
+'use client';
+
 import React from 'react';
-import type { PlayerAction } from '@/lib/types';
+import { motion } from 'framer-motion';
 
 interface ActionsProps {
-  onAction: (action: PlayerAction) => void;
-  canHit?: boolean;
-  canStand?: boolean;
-  canDouble?: boolean;
-  canSplit?: boolean;
-  canSurrender?: boolean;
-  canInsurance?: boolean;
-  timer?: number | null;
-  className?: string;
+  onAction: (action: 'hit' | 'stand' | 'double' | 'split' | 'surrender' | 'insurance') => void;
+  canHit: boolean;
+  canStand: boolean;
+  canDouble: boolean;
+  canSplit: boolean;
+  canSurrender: boolean;
+  canInsurance: boolean;
+  timer: number | null;
 }
 
 export function Actions({
   onAction,
-  canHit = false,
-  canStand = false,
-  canDouble = false,
-  canSplit = false,
-  canSurrender = false,
-  canInsurance = false,
-  timer = null,
-  className = '',
+  canHit,
+  canStand,
+  canDouble,
+  canSplit,
+  canSurrender,
+  canInsurance,
+  timer,
 }: ActionsProps) {
-  // Get button style based on action type
-  const getButtonStyle = (action: PlayerAction, enabled: boolean) => {
-    if (!enabled) return 'bg-gray-700 text-gray-300 border-gray-600';
-    
-    switch (action) {
-      case 'hit':
-        return 'bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white border-green-400';
-      case 'stand':
-        return 'bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white border-red-400';
-      case 'double':
-        return 'bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white border-purple-400';
-      case 'split':
-        return 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white border-blue-400';
-      case 'surrender':
-        return 'bg-gradient-to-r from-gray-600 to-gray-500 hover:from-gray-500 hover:to-gray-400 text-white border-gray-400';
-      case 'insurance':
-        return 'bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 text-white border-yellow-400';
-      default:
-        return 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white border-blue-400';
-    }
-  };
-
-  // Get icon for each action
-  const getActionIcon = (action: PlayerAction) => {
-    switch (action) {
-      case 'hit':
-        return '+';
-      case 'stand':
-        return '✋';
-      case 'double':
-        return '2x';
-      case 'split':
-        return '⊥';
-      case 'surrender':
-        return '🏳️';
-      case 'insurance':
-        return '🛡️';
-      default:
-        return '';
-    }
-  };
-
-  const ActionButton = ({ action, label, enabled }: { action: PlayerAction; label: string; enabled: boolean }) => (
-    <button
+  // Action button component for consistent styling
+  const ActionButton = ({ 
+    action, 
+    label, 
+    icon, 
+    enabled, 
+    color = 'bg-gray-800'
+  }: { 
+    action: 'hit' | 'stand' | 'double' | 'split' | 'surrender' | 'insurance'; 
+    label: string; 
+    icon: string;
+    enabled: boolean;
+    color?: string;
+  }) => (
+    <motion.button
+      whileHover={{ scale: enabled ? 1.05 : 1 }}
+      whileTap={{ scale: enabled ? 0.95 : 1 }}
+      className={`relative px-3 py-2 rounded-md ${enabled ? `${color} hover:brightness-110 active:brightness-90` : 'bg-gray-800/50 cursor-not-allowed'} transition-all duration-200`}
       onClick={() => enabled && onAction(action)}
       disabled={!enabled}
-      className={`
-        px-5 py-3 rounded-lg font-bold
-        ${getButtonStyle(action, enabled)}
-        shadow-lg shadow-black/20
-        transition-all duration-200 ease-in-out
-        transform hover:scale-105 active:scale-95
-        disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none
-        border
-        backdrop-filter backdrop-blur-sm
-        flex flex-col items-center justify-center
-        min-w-[80px]
-      `}
     >
-      <span className="text-lg mb-1">{getActionIcon(action)}</span>
-      <span>{label}</span>
-    </button>
+      <div className="absolute inset-0 rounded-md bg-gradient-to-b from-white/10 to-transparent pointer-events-none"></div>
+      <div className="absolute inset-0 rounded-md shadow-inner pointer-events-none"></div>
+      <div className="flex flex-col items-center justify-center">
+        <span className="text-lg mb-1">{icon}</span>
+        <span className="text-xs font-medium tracking-wide">{label}</span>
+      </div>
+    </motion.button>
   );
 
   return (
-    <div className={`flex flex-col items-center space-y-4 ${className}`}>
-      {/* Title */}
-      <div className="text-white font-bold text-xl mb-2 bg-black/50 px-4 py-1 rounded-lg">Your Turn</div>
-      
-      {/* Timer */}
+    <div className="flex flex-col items-center">
+      {/* Timer display */}
       {timer !== null && (
-        <div className="relative mb-2">
-          <div className="px-4 py-1 bg-black/60 rounded-full border border-white/20 shadow-lg">
-            <span className="text-xl font-bold text-white">{timer}s</span>
+        <div className="mb-3 text-center">
+          <div className="inline-block px-3 py-1 bg-black/40 rounded-full text-sm font-medium">
+            <span className="text-yellow-400 mr-1">⏱</span>
+            <span>{timer}s</span>
           </div>
         </div>
       )}
-
-      {/* Action Buttons */}
-      <div className="flex flex-wrap justify-center gap-3 max-w-md">
-        <ActionButton action="hit" label="Hit" enabled={canHit} />
-        <ActionButton action="stand" label="Stand" enabled={canStand} />
-        <ActionButton action="double" label="Double" enabled={canDouble} />
-        <ActionButton action="split" label="Split" enabled={canSplit} />
-        <ActionButton action="surrender" label="Surrender" enabled={canSurrender} />
-        {canInsurance && (
-          <ActionButton action="insurance" label="Insurance" enabled={true} />
-        )}
+      
+      {/* Primary actions */}
+      <div className="grid grid-cols-5 gap-2">
+        <ActionButton
+          action="hit"
+          label="HIT"
+          icon="👆"
+          enabled={canHit}
+          color="bg-emerald-800"
+        />
+        
+        <ActionButton
+          action="stand"
+          label="STAND"
+          icon="✋"
+          enabled={canStand}
+          color="bg-red-800"
+        />
+        
+        <ActionButton
+          action="double"
+          label="DOUBLE"
+          icon="💰"
+          enabled={canDouble}
+          color="bg-blue-800"
+        />
+        
+        <ActionButton
+          action="split"
+          label="SPLIT"
+          icon="✂️"
+          enabled={canSplit}
+          color="bg-purple-800"
+        />
+        
+        <ActionButton
+          action="surrender"
+          label="SURRENDER"
+          icon="🏳️"
+          enabled={canSurrender}
+          color="bg-gray-700"
+        />
       </div>
+      
+      {/* Insurance action (only shown when available) */}
+      {canInsurance && (
+        <div className="mt-2">
+          <ActionButton
+            action="insurance"
+            label="INSURANCE"
+            icon="🛡️"
+            enabled={canInsurance}
+            color="bg-amber-700"
+          />
+        </div>
+      )}
     </div>
   );
 } 
