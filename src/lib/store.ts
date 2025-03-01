@@ -15,7 +15,7 @@ interface GameStore extends GameState {
   // Game Actions
   joinGame: (name: string, seatPosition: number) => Promise<void>;
   leaveGame: (playerId: string) => Promise<void>;
-  placeBet: (amount: number) => Promise<void>;
+  placeBet: (seatPosition: number, amount: number) => Promise<void>;
   takeAction: (action: PlayerAction) => Promise<void>;
   startNewRound: () => Promise<void>;
   moveToNextPlayer: () => Promise<void>;
@@ -325,11 +325,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
   },
 
-  placeBet: async (amount: number) => {
-    const { players, selectedSeat, id: gameId } = get();
-    if (!selectedSeat || amount < 5 || amount > 1000) return;
+  placeBet: async (seatPosition: number, amount: number) => {
+    const { players, id: gameId } = get();
+    if (seatPosition === null || amount < 5 || amount > 1000) return;
 
-    const player = players.find(p => p.id === get().players[selectedSeat].id);
+    const player = players.find(p => {
+      // Check if this player is at the selected seat
+      const isLastPlayer = p.id === players[players.length - 1]?.id;
+      const hasHandAtSeat = get().playerHands.some(h => h.playerId === p.id && h.seatPosition === seatPosition);
+      return isLastPlayer || hasHandAtSeat;
+    });
+    
     if (!player || player.balance < amount) return;
 
     try {
@@ -350,7 +356,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         id: handId,
         game_id: gameId,
         player_id: player.id,
-        seat_position: selectedSeat,
+        seat_position: seatPosition,
         cards: JSON.stringify([]),
         bet_amount: amount,
         status: 'betting',
@@ -364,13 +370,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
         players: currentState.players.map(p => 
           p.id === player.id ? updatedPlayer : p
         ),
-        currentBet: amount,
         playerHands: [
           ...currentState.playerHands,
           {
             id: handId,
             playerId: player.id,
-            seatPosition: selectedSeat,
+            seatPosition: seatPosition,
             cards: [],
             betAmount: amount,
             status: 'betting',
@@ -380,7 +385,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           },
         ],
       }));
-      
+
       // Sync game state
       await get().syncGameState();
     } catch (error) {

@@ -1,20 +1,29 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Chip } from '@/components/game/chip';
 
-interface BetControlsProps {
+export interface BetControlsProps {
   onPlaceBet: (amount: number) => void;
   playerBalance: number;
+  existingBet?: number;
   timer?: number | null;
   className?: string;
 }
 
 const CHIP_VALUES = [5, 25, 100, 500, 1000];
 
-export function BetControls({ onPlaceBet, playerBalance, timer = null, className = '' }: BetControlsProps) {
+export function BetControls({ onPlaceBet, playerBalance, existingBet = 0, timer = null, className = '' }: BetControlsProps) {
   const [selectedAmount, setSelectedAmount] = useState<number>(0);
   const [currentBet, setCurrentBet] = useState<number[]>([]);
+
+  // Reset the bet if existingBet changes
+  useEffect(() => {
+    if (existingBet > 0) {
+      setCurrentBet([]);
+      setSelectedAmount(0);
+    }
+  }, [existingBet]);
 
   const handleAddChip = (value: number) => {
     if (getTotalBet() + value <= playerBalance) {
