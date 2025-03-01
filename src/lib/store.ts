@@ -7,6 +7,7 @@ interface GameStore extends GameState {
   players: Player[];
   selectedSeat: number | null;
   currentBet: number;
+  isLoading: boolean;
   
   // Game Actions
   joinGame: (name: string, seatPosition: number) => Promise<void>;
@@ -21,6 +22,8 @@ interface GameStore extends GameState {
   // Game State Management
   updateGameState: (newState: Partial<GameState>) => void;
   resetGame: () => void;
+  syncGameState: () => Promise<void>;
+  initializeGameState: () => Promise<void>;
 }
 
 const INITIAL_STATE: Partial<GameState> = {
@@ -39,7 +42,137 @@ export const useGameStore = create<GameStore>((set, get) => ({
   players: [],
   selectedSeat: null,
   currentBet: 0,
+  isLoading: true,
   updatedAt: new Date().toISOString(),
+
+  // Initialize game state from database
+  initializeGameState: async () => {
+    set({ isLoading: true });
+    
+    try {
+      // Check if there's an active game
+      const { data: gameData } = await supabase
+        .from('game_state')
+        .select('*')
+        .order('updated_at', { ascending: false })
+        .limit(1);
+
+      if (gameData && gameData.length > 0) {
+        const latestGame = gameData[0];
+        
+        // Parse JSON strings back to objects
+        const parsedGameState: Partial<GameState> = {
+          id: latestGame.id,
+          deck: JSON.parse(latestGame.deck),
+          dealerHand: JSON.parse(latestGame.dealer_hand),
+          dealerScore: latestGame.dealer_score,
+          currentPlayerIndex: latestGame.current_player_index,
+          gamePhase: latestGame.game_phase,
+          updatedAt: latestGame.updated_at,
+          timer: latestGame.timer,
+        };
+
+        // Fetch player hands for this game
+        const { data: handData } = await supabase
+          .from('player_hands')
+          .select('*')
+          .eq('game_id', latestGame.id);
+
+        if (handData && handData.length > 0) {
+          const parsedHands = handData.map(hand => ({
+            id: hand.id,
+            playerId: hand.player_id,
+            seatPosition: hand.seat_position,
+            cards: JSON.parse(hand.cards),
+            betAmount: hand.bet_amount,
+            status: hand.status,
+            isTurn: hand.is_turn,
+            insuranceBet: hand.insurance_bet,
+            isSplit: hand.is_split,
+          }));
+
+          // Fetch players
+          const playerIds = Array.from(new Set(parsedHands.map(h => h.playerId)));
+          const { data: playerData } = await supabase
+            .from('players')
+            .select('*')
+            .in('id', playerIds);
+
+          if (playerData) {
+            // Update game state with all fetched data
+            set({
+              ...parsedGameState,
+              playerHands: parsedHands,
+              players: playerData,
+              isLoading: false,
+            });
+            return;
+          }
+        }
+      }
+      
+      // If no game found or incomplete data, create a new game
+      const newGameId = crypto.randomUUID();
+      await supabase.from('game_state').insert({
+        id: newGameId,
+        deck: JSON.stringify([]),
+        dealer_hand: JSON.stringify([]),
+        dealer_score: 0,
+        current_player_index: -1,
+        game_phase: 'waiting',
+        updated_at: new Date().toISOString(),
+        timer: null,
+      });
+      
+      set({ 
+        ...INITIAL_STATE as GameState, 
+        id: newGameId,
+        isLoading: false 
+      });
+    } catch (error) {
+      console.error('Error initializing game state:', error);
+      set({ isLoading: false });
+    }
+  },
+
+  // Sync current game state to database
+  syncGameState: async () => {
+    const { id, deck, dealerHand, dealerScore, currentPlayerIndex, gamePhase, timer, playerHands } = get();
+    
+    if (!id) return;
+    
+    try {
+      // Update game state
+      await supabase.from('game_state').upsert({
+        id,
+        deck: JSON.stringify(deck),
+        dealer_hand: JSON.stringify(dealerHand),
+        dealer_score: dealerScore,
+        current_player_index: currentPlayerIndex,
+        game_phase: gamePhase,
+        updated_at: new Date().toISOString(),
+        timer,
+      });
+      
+      // Update player hands
+      for (const hand of playerHands) {
+        await supabase.from('player_hands').upsert({
+          id: hand.id,
+          game_id: id,
+          player_id: hand.playerId,
+          seat_position: hand.seatPosition,
+          cards: JSON.stringify(hand.cards),
+          bet_amount: hand.betAmount,
+          status: hand.status,
+          is_turn: hand.isTurn,
+          insurance_bet: hand.insuranceBet,
+          is_split: hand.isSplit,
+        });
+      }
+    } catch (error) {
+      console.error('Error syncing game state:', error);
+    }
+  },
 
   joinGame: async (name: string, seatPosition: number) => {
     try {
@@ -91,6 +224,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
         playerHands: currentState.playerHands.filter(h => h.playerId !== playerId),
       }));
 
+      // Sync state after player leaves
+      await get().syncGameState();
+
       // If less than 2 players, reset game
       if (get().players.length < 2) {
         get().resetGame();
@@ -102,8 +238,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   placeBet: async (amount: number) => {
-    const { players, selectedSeat } = get();
-    if (!selectedSeat || amount < 100 || amount > 1000) return;
+    const { players, selectedSeat, id: gameId } = get();
+    if (!selectedSeat || amount < 5 || amount > 1000) return;
 
     const player = players.find(p => p.id === get().players[selectedSeat].id);
     if (!player || player.balance < amount) return;
@@ -119,6 +255,22 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
       if (!updatedPlayer) throw new Error('Failed to update player balance');
 
+      const handId = crypto.randomUUID();
+      
+      // Create hand in database
+      await supabase.from('player_hands').insert({
+        id: handId,
+        game_id: gameId,
+        player_id: player.id,
+        seat_position: selectedSeat,
+        cards: JSON.stringify([]),
+        bet_amount: amount,
+        status: 'betting',
+        is_turn: false,
+        insurance_bet: null,
+        is_split: false,
+      });
+
       // Update local state
       set(currentState => ({
         players: currentState.players.map(p => 
@@ -128,7 +280,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         playerHands: [
           ...currentState.playerHands,
           {
-            id: crypto.randomUUID(),
+            id: handId,
             playerId: player.id,
             seatPosition: selectedSeat,
             cards: [],
@@ -140,6 +292,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
           },
         ],
       }));
+      
+      // Sync game state
+      await get().syncGameState();
     } catch (error) {
       console.error('Error placing bet:', error);
       throw error;
@@ -171,6 +326,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 : h
             ),
           }));
+          
+          // Sync game state after action
+          await get().syncGameState();
 
           if (isBust) {
             // Move to next player or dealer
@@ -187,6 +345,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 : h
             ),
           }));
+          
+          // Sync game state after action
+          await get().syncGameState();
 
           await get().moveToNextPlayer();
           break;
@@ -204,7 +365,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   startNewRound: async () => {
     const newDeck = createDeck();
     const { card: dealerCard, remainingDeck } = dealCard(newDeck, true);
-
+    
+    // Update local state
     set({
       deck: remainingDeck,
       dealerHand: [dealerCard],
@@ -214,14 +376,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
       timer: 30, // Increase timer for betting phase
       playerHands: [], // Clear previous hands
     });
+    
+    // Sync to database
+    await get().syncGameState();
   },
 
   updateGameState: (newState: Partial<GameState>) => {
     set(newState);
+    // Don't sync here as this is used by the realtime subscription
   },
 
   resetGame: () => {
-    set({ ...INITIAL_STATE as GameState, id: crypto.randomUUID() });
+    const newGameId = crypto.randomUUID();
+    set({ ...INITIAL_STATE as GameState, id: newGameId });
+    get().syncGameState();
   },
 
   moveToNextPlayer: async () => {
@@ -231,6 +399,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (nextIndex >= playerHands.length) {
       // All players have finished, move to dealer's turn
       set({ gamePhase: 'dealer_turn' });
+      
+      // Sync state before dealer plays
+      await get().syncGameState();
+      
       await get().dealerPlay();
     } else {
       // Move to next player
@@ -241,6 +413,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
           isTurn: i === nextIndex,
         })),
       });
+      
+      // Sync state after moving to next player
+      await get().syncGameState();
     }
   },
 
@@ -267,6 +442,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
       deck: currentDeck,
       gamePhase: 'payout',
     });
+    
+    // Sync state after dealer plays
+    await get().syncGameState();
 
     // Handle payouts
     await get().handlePayouts();
@@ -318,6 +496,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
           }));
         }
       }
+      
+      // Sync state after payouts
+      await get().syncGameState();
 
       // Start new round after a delay
       setTimeout(() => {

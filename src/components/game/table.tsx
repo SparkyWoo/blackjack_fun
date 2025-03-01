@@ -6,6 +6,7 @@ import { PlayerSeat } from '@/components/game/player-seat';
 import { Actions } from '@/components/game/actions';
 import { BetControls } from '@/components/game/bet-controls';
 import { useGameStore } from '@/lib/store';
+import { useRealtimeGame } from '@/lib/realtime';
 import { canDoubleDown, canSplit, canSurrender } from '@/lib/blackjack';
 import type { GamePhase } from '@/lib/types';
 
@@ -19,10 +20,25 @@ export function Table() {
     gamePhase,
     selectedSeat,
     timer,
+    isLoading,
     joinGame,
     placeBet,
     takeAction,
+    initializeGameState,
   } = useGameStore();
+  
+  // Initialize real-time subscriptions
+  const { initializeGameState: initializeRealtime } = useRealtimeGame();
+
+  // Initialize game state on component mount
+  useEffect(() => {
+    const loadGame = async () => {
+      await initializeGameState();
+      initializeRealtime();
+    };
+    
+    loadGame();
+  }, [initializeGameState, initializeRealtime]);
 
   // Calculate seat positions in a semi-circle
   const seatPositions = Array.from({ length: 7 }, (_, i) => {
@@ -65,12 +81,27 @@ export function Table() {
     }
   };
 
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-green-900">
+        <div className="bg-black/50 p-8 rounded-xl backdrop-blur-md border border-white/10 shadow-2xl">
+          <div className="flex flex-col items-center">
+            <div className="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin mb-4"></div>
+            <h2 className="text-2xl font-bold text-white">Loading Game...</h2>
+            <p className="text-gray-300 mt-2">Connecting to the blackjack table</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative w-full h-screen overflow-hidden">
       {/* Background with gradient and texture */}
       <div className="absolute inset-0 bg-gradient-to-b from-green-900 via-green-800 to-green-700 z-0">
         {/* Table texture overlay */}
-        <div className="absolute inset-0 bg-[url('/table-texture.png')] bg-repeat opacity-10"></div>
+        <div className="absolute inset-0 bg-[url('/table-texture.svg')] bg-repeat opacity-10"></div>
         
         {/* Ambient light effect */}
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-yellow-400/10 blur-3xl"></div>
@@ -93,7 +124,7 @@ export function Table() {
         {/* Table felt with border */}
         <div className="relative w-[900px] h-[500px] rounded-[50%] bg-green-700 border-8 border-brown-800 shadow-2xl overflow-hidden">
           {/* Table felt texture */}
-          <div className="absolute inset-0 bg-[url('/felt-texture.png')] bg-repeat opacity-20"></div>
+          <div className="absolute inset-0 bg-[url('/felt-texture.svg')] bg-repeat opacity-20"></div>
           
           {/* Table inner border */}
           <div className="absolute inset-4 rounded-[50%] border-2 border-dashed border-yellow-500/20"></div>
@@ -177,6 +208,12 @@ export function Table() {
             </div>
           </div>
         )}
+        
+        {/* Connection Status Indicator */}
+        <div className="absolute bottom-2 right-2 z-30 flex items-center space-x-2 px-3 py-1 bg-black/30 backdrop-blur-sm rounded-full">
+          <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+          <span className="text-xs text-white">Live</span>
+        </div>
       </div>
     </div>
   );
