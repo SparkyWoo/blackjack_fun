@@ -23,12 +23,15 @@ export function Table() {
     takeAction,
   } = useGameStore();
 
-  // Calculate seat positions in a semi-circle
-  const seatPositions = Array.from({ length: 6 }, (_, i) => {
-    const angle = (Math.PI / 5) * (i - 2.5);
-    const x = Math.cos(angle) * 300;
-    const y = Math.sin(angle) * 150;
-    return { x, y };
+  // Calculate seat positions horizontally
+  const seatPositions = Array.from({ length: 5 }, (_, i) => {
+    const spacing = 200; // Space between seats
+    const totalWidth = spacing * 4; // Total width for all seats
+    const startX = -totalWidth / 2; // Start from the left
+    return {
+      x: startX + (i * spacing),
+      y: 0,
+    };
   });
 
   // Handle player actions
@@ -40,80 +43,88 @@ export function Table() {
   const currentHand = playerHands.find(h => h.isTurn);
 
   return (
-    <div className="relative w-full h-screen bg-green-800 overflow-hidden">
+    <div className="relative w-full h-screen bg-gradient-to-b from-green-900 to-green-800 overflow-hidden flex flex-col items-center justify-center">
+      {/* Game Phase Indicator */}
+      <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black/30 px-6 py-2 rounded-full">
+        <span className="text-white font-bold">
+          Phase: {gamePhase.replace('_', ' ').toUpperCase()}
+        </span>
+      </div>
+
       {/* Dealer Area */}
-      <div className="absolute top-8 left-1/2 transform -translate-x-1/2">
-        <Dealer
-          cards={dealerHand}
-          score={dealerScore}
-        />
+      <div className="absolute top-[15%] left-1/2 transform -translate-x-1/2">
+        <div className="p-8 rounded-full bg-black/20">
+          <Dealer
+            cards={dealerHand}
+            score={dealerScore}
+          />
+        </div>
       </div>
 
       {/* Player Seats */}
-      {seatPositions.map((pos, index) => {
-        const player = players.find(p => 
-          playerHands.some(h => h.playerId === p.id && h.seatPosition === index)
-        );
-        const hand = playerHands.find(h => h.seatPosition === index);
+      <div className="absolute bottom-[25%] left-1/2 transform -translate-x-1/2 flex justify-center items-end space-x-4">
+        {seatPositions.map((pos, index) => {
+          const player = players.find(p => 
+            playerHands.some(h => h.playerId === p.id && h.seatPosition === index)
+          );
+          const hand = playerHands.find(h => h.seatPosition === index);
 
-        return (
-          <div
-            key={index}
-            style={{
-              position: 'absolute',
-              bottom: '20%',
-              left: '50%',
-              transform: `translate(${pos.x}px, ${pos.y}px)`,
-            }}
-          >
-            <PlayerSeat
-              seatNumber={index}
-              player={player}
-              hand={hand}
-              onJoin={(seatNumber) => {
-                const playerName = prompt('Enter your name:');
-                if (playerName) {
-                  joinGame(playerName, seatNumber);
-                }
+          return (
+            <div
+              key={index}
+              style={{
+                transform: `translateX(${pos.x}px)`,
               }}
-              isCurrentPlayer={currentPlayerIndex === index}
-            />
-          </div>
-        );
-      })}
+              className="transition-all duration-300 ease-in-out hover:scale-105"
+            >
+              <PlayerSeat
+                seatNumber={index}
+                player={player}
+                hand={hand}
+                onJoin={(seatNumber) => {
+                  const playerName = prompt('Enter your name:');
+                  if (playerName) {
+                    joinGame(playerName, seatNumber);
+                  }
+                }}
+                isCurrentPlayer={currentPlayerIndex === index}
+              />
+            </div>
+          );
+        })}
+      </div>
 
       {/* Action Controls */}
       {currentHand && gamePhase === 'player_turns' && (
         <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2">
-          <Actions
-            onAction={handleAction}
-            canHit={true}
-            canStand={true}
-            canDouble={canDoubleDown(currentHand.cards)}
-            canSplit={canSplit(currentHand.cards)}
-            canSurrender={canSurrender(currentHand.cards)}
-            canInsurance={dealerHand[0]?.rank === 'A'}
-            timer={timer}
-          />
+          <div className="p-4 bg-black/30 rounded-lg backdrop-blur-sm">
+            <Actions
+              onAction={handleAction}
+              canHit={true}
+              canStand={true}
+              canDouble={canDoubleDown(currentHand.cards)}
+              canSplit={canSplit(currentHand.cards)}
+              canSurrender={canSurrender(currentHand.cards)}
+              canInsurance={dealerHand[0]?.rank === 'A'}
+              timer={timer}
+            />
+          </div>
         </div>
       )}
 
       {/* Betting Controls */}
       {selectedSeat !== null && gamePhase === 'betting' && (
         <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2">
-          <BetControls
-            onPlaceBet={placeBet}
-            playerBalance={players.find(p => 
-              playerHands.some(h => h.playerId === p.id && h.seatPosition === selectedSeat)
-            )?.balance || 0}
-          />
+          <div className="p-6 bg-black/30 rounded-lg backdrop-blur-sm">
+            <BetControls
+              onPlaceBet={placeBet}
+              playerBalance={players.find(p => 
+                playerHands.some(h => h.playerId === p.id && h.seatPosition === selectedSeat)
+              )?.balance || 0}
+            />
+          </div>
         </div>
       )}
-
-      {/* Game Phase Indicator */}
-      <div className="absolute top-4 left-4 text-white font-bold">
-        Phase: {gamePhase.replace('_', ' ').toUpperCase()}
-      </div>
     </div>
   );
 } 

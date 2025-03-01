@@ -76,10 +76,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
         selectedSeat: seatPosition,
       }));
 
-      // If we have 2 or more players, start a new round
-      if (get().players.length >= 2 && get().gamePhase === 'waiting') {
-        await get().startNewRound();
-      }
+      // Start a new round immediately when a player joins
+      await get().startNewRound();
     } catch (error) {
       console.error('Error joining game:', error);
       throw error;
@@ -213,7 +211,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       dealerScore: calculateHandScore([dealerCard]),
       gamePhase: 'betting',
       currentPlayerIndex: 0,
-      timer: 10,
+      timer: 30, // Increase timer for betting phase
+      playerHands: [], // Clear previous hands
     });
   },
 
