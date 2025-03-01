@@ -26,6 +26,7 @@ export function Table() {
     placeBet,
     takeAction,
     initializeGameState,
+    resetGame,
   } = useGameStore();
   
   // Initialize real-time subscriptions
@@ -44,6 +45,18 @@ export function Table() {
     loadGame();
     // Only depend on initializeGameState to prevent unnecessary re-renders
   }, [initializeGameState]);
+
+  // Handle game reset
+  const handleResetGame = async () => {
+    if (window.confirm('Are you sure you want to reset the game? This will clear all current game data.')) {
+      try {
+        await resetGame();
+        await initializeGameState();
+      } catch (error) {
+        console.error('Failed to reset game:', error);
+      }
+    }
+  };
 
   // Calculate seat positions in a horizontal line
   const seatPositions = Array.from({ length: 7 }, (_, i) => {
@@ -138,6 +151,17 @@ export function Table() {
             </div>
           </motion.div>
         </AnimatePresence>
+
+        {/* Reset Game Button */}
+        <div className="absolute top-4 right-4 z-50">
+          <button
+            onClick={handleResetGame}
+            className="px-3 py-1.5 glass rounded-md text-white text-xs font-medium hover:bg-red-800/30 transition-colors duration-200 flex items-center"
+          >
+            <span className="mr-1">🔄</span>
+            Reset Game
+          </button>
+        </div>
 
         {/* Table felt with border */}
         <div className="relative w-[750px] h-[420px] rounded-[50%] vlackjack-table overflow-hidden">
