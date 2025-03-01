@@ -1,6 +1,14 @@
 import { create } from 'zustand';
-import { createDeck, dealCard, calculateHandScore, shouldDealerHit, calculatePayout, needsReshuffle } from './blackjack';
-import type { GameState, Player, PlayerAction, Card } from './types';
+import { 
+  createDeck, 
+  dealCard, 
+  calculateHandScore, 
+  shouldDealerHit, 
+  calculatePayout, 
+  needsReshuffle,
+  canSplit
+} from './blackjack';
+import type { GameState, Player, PlayerAction, Card, PlayerHand, HandStatus } from './types';
 import { supabase } from './supabase';
 
 // Constants
@@ -398,7 +406,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   takeAction: async (action: PlayerAction) => {
-    const { deck, playerHands } = get();
+    const { deck, playerHands, players } = get();
     const currentHand = playerHands.find(h => h.isTurn);
     if (!currentHand) return;
 
@@ -449,8 +457,218 @@ export const useGameStore = create<GameStore>((set, get) => ({
           break;
         }
 
-        // Implement other actions (double, split, surrender, insurance)
-        // ... 
+        case 'double': {
+          // Find the player who owns this hand
+          const player = players.find(p => p.id === currentHand.playerId);
+          if (!player) return;
+          
+          // Check if player has enough balance to double
+          if (player.balance < currentHand.betAmount) return;
+          
+          // Update player balance in database
+          const { data: updatedPlayer } = await supabase
+            .from('players')
+            .update({ balance: player.balance - currentHand.betAmount })
+            .eq('id', player.id)
+            .select()
+            .single();
+            
+          if (!updatedPlayer) throw new Error('Failed to update player balance');
+          
+          // Deal one more card
+          const { card, remainingDeck } = dealCard(deck);
+          const newCards = [...currentHand.cards, card];
+          const isBust = calculateHandScore(newCards) > 21;
+          
+          // Update hand in state
+          set(currentState => ({
+            deck: remainingDeck,
+            players: currentState.players.map(p => 
+              p.id === player.id ? updatedPlayer : p
+            ),
+            playerHands: currentState.playerHands.map(h =>
+              h.id === currentHand.id
+                ? {
+                    ...h,
+                    cards: newCards,
+                    betAmount: h.betAmount * 2, // Double the bet
+                    status: isBust ? 'bust' : 'double',
+                    isTurn: false,
+                  }
+                : h
+            ),
+          }));
+          
+          // Sync game state after action
+          await get().syncGameState();
+          
+          // Move to next player or dealer
+          await get().moveToNextPlayer();
+          break;
+        }
+
+        case 'split': {
+          // Find the player who owns this hand
+          const player = players.find(p => p.id === currentHand.playerId);
+          if (!player) return;
+          
+          // Check if player has enough balance to split
+          if (player.balance < currentHand.betAmount) return;
+          
+          // Check if hand can be split (should have exactly 2 cards of same rank)
+          if (!canSplit(currentHand.cards)) return;
+          
+          // Update player balance in database
+          const { data: updatedPlayer } = await supabase
+            .from('players')
+            .update({ balance: player.balance - currentHand.betAmount })
+            .eq('id', player.id)
+            .select()
+            .single();
+            
+          if (!updatedPlayer) throw new Error('Failed to update player balance');
+          
+          // Create a new hand ID for the split hand
+          const newHandId = crypto.randomUUID();
+          
+          // Deal one card to each hand
+          const { card: card1, remainingDeck: deck1 } = dealCard(deck);
+          const { card: card2, remainingDeck: deck2 } = dealCard(deck1);
+          
+          // Create the two new hands
+          const firstHand = {
+            ...currentHand,
+            cards: [currentHand.cards[0], card1],
+            isSplit: true,
+            isTurn: true,
+          };
+          
+          const secondHand: PlayerHand = {
+            id: newHandId,
+            playerId: currentHand.playerId,
+            seatPosition: currentHand.seatPosition,
+            cards: [currentHand.cards[1], card2],
+            betAmount: currentHand.betAmount,
+            status: 'active' as HandStatus,
+            isTurn: false,
+            insuranceBet: null,
+            isSplit: true,
+          };
+          
+          // Create the second hand in database
+          await supabase.from('player_hands').insert({
+            id: newHandId,
+            game_id: get().id,
+            player_id: player.id,
+            seat_position: currentHand.seatPosition,
+            cards: JSON.stringify([currentHand.cards[1], card2]),
+            bet_amount: currentHand.betAmount,
+            status: 'active' as HandStatus,
+            is_turn: false,
+            insurance_bet: null,
+            is_split: true,
+          });
+          
+          // Update state
+          set(currentState => ({
+            deck: deck2,
+            players: currentState.players.map(p => 
+              p.id === player.id ? updatedPlayer : p
+            ),
+            playerHands: [
+              ...currentState.playerHands.filter(h => h.id !== currentHand.id),
+              firstHand,
+              secondHand,
+            ],
+          }));
+          
+          // Sync game state after action
+          await get().syncGameState();
+          break;
+        }
+
+        case 'surrender': {
+          // Find the player who owns this hand
+          const player = players.find(p => p.id === currentHand.playerId);
+          if (!player) return;
+          
+          // Can only surrender on first two cards
+          if (currentHand.cards.length !== 2) return;
+          
+          // Return half the bet to the player
+          const refundAmount = Math.floor(currentHand.betAmount / 2);
+          
+          // Update player balance in database
+          const { data: updatedPlayer } = await supabase
+            .from('players')
+            .update({ balance: player.balance + refundAmount })
+            .eq('id', player.id)
+            .select()
+            .single();
+            
+          if (!updatedPlayer) throw new Error('Failed to update player balance');
+          
+          // Update hand status
+          set(currentState => ({
+            players: currentState.players.map(p => 
+              p.id === player.id ? updatedPlayer : p
+            ),
+            playerHands: currentState.playerHands.map(h =>
+              h.id === currentHand.id
+                ? { ...h, status: 'surrender', isTurn: false }
+                : h
+            ),
+          }));
+          
+          // Sync game state after action
+          await get().syncGameState();
+          
+          // Move to next player or dealer
+          await get().moveToNextPlayer();
+          break;
+        }
+
+        case 'insurance': {
+          // Find the player who owns this hand
+          const player = players.find(p => p.id === currentHand.playerId);
+          if (!player) return;
+          
+          // Can only take insurance when dealer's up card is an Ace
+          const dealerUpCard = get().dealerHand[0];
+          if (!dealerUpCard || dealerUpCard.rank !== 'A') return;
+          
+          // Insurance costs half the original bet
+          const insuranceAmount = Math.floor(currentHand.betAmount / 2);
+          
+          // Check if player has enough balance
+          if (player.balance < insuranceAmount) return;
+          
+          // Update player balance in database
+          const { data: updatedPlayer } = await supabase
+            .from('players')
+            .update({ balance: player.balance - insuranceAmount })
+            .eq('id', player.id)
+            .select()
+            .single();
+            
+          if (!updatedPlayer) throw new Error('Failed to update player balance');
+          
+          // Update hand with insurance bet
+          set(currentState => ({
+            players: currentState.players.map(p => 
+              p.id === player.id ? updatedPlayer : p
+            ),
+            playerHands: currentState.playerHands.map(h =>
+              h.id === currentHand.id
+                ? { ...h, insuranceBet: insuranceAmount }
+                : h
+            ),
+          }));
+          
+          // Sync game state after action
+          await get().syncGameState();
+          break;
+        }
       }
     } catch (error) {
       console.error('Error taking action:', error);

@@ -41,11 +41,11 @@ export function Card({ card, className = '', isDealing = false }: CardProps) {
   return (
     <div 
       className={`
-        relative w-14 h-[5.5rem] 
+        relative w-10 h-[3.75rem] 
         transform transition-all duration-300 ease-in-out
         ${isDealing ? 'animate-deal' : ''}
-        hover:shadow-xl hover:-translate-y-1 hover:scale-105
-        rounded-md overflow-hidden
+        hover:shadow-md hover:-translate-y-1 hover:scale-105
+        rounded-sm overflow-hidden
         ${className}
       `}
     >

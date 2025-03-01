@@ -41,25 +41,31 @@ export function Actions({
     <motion.button
       whileHover={{ scale: enabled ? 1.05 : 1 }}
       whileTap={{ scale: enabled ? 0.95 : 1 }}
-      className={`relative px-3 py-2 rounded-md ${enabled ? `${color} hover:brightness-110 active:brightness-90` : 'bg-gray-800/50 cursor-not-allowed'} transition-all duration-200`}
+      className={`relative px-2 py-1.5 rounded-sm ${enabled ? `${color} hover:brightness-110 active:brightness-90` : 'bg-gray-800/50 cursor-not-allowed'} transition-all duration-200`}
       onClick={() => enabled && onAction(action)}
       disabled={!enabled}
     >
-      <div className="absolute inset-0 rounded-md bg-gradient-to-b from-white/10 to-transparent pointer-events-none"></div>
-      <div className="absolute inset-0 rounded-md shadow-inner pointer-events-none"></div>
+      <div className="absolute inset-0 rounded-sm bg-gradient-to-b from-white/10 to-transparent pointer-events-none"></div>
       <div className="flex flex-col items-center justify-center">
-        <span className="text-lg mb-1">{icon}</span>
-        <span className="text-xs font-medium tracking-wide">{label}</span>
+        <span className="text-sm mb-0.5">{icon}</span>
+        <span className="text-[10px] font-medium tracking-wide">{label}</span>
       </div>
     </motion.button>
   );
 
   return (
     <div className="flex flex-col items-center">
+      {/* Player turn indicator */}
+      <div className="mb-2 text-center">
+        <div className="inline-block px-2 py-0.5 bg-yellow-500/90 rounded-sm text-[10px] font-bold text-white shadow-sm">
+          YOUR TURN
+        </div>
+      </div>
+      
       {/* Timer display */}
       {timer !== null && (
-        <div className="mb-3 text-center">
-          <div className="inline-block px-3 py-1 bg-black/40 rounded-full text-sm font-medium">
+        <div className="mb-2 text-center">
+          <div className="inline-block px-2 py-0.5 bg-black/40 rounded-sm text-[10px] font-medium">
             <span className="text-yellow-400 mr-1">⏱</span>
             <span>{timer}s</span>
           </div>
@@ -67,7 +73,7 @@ export function Actions({
       )}
       
       {/* Primary actions */}
-      <div className="grid grid-cols-5 gap-2">
+      <div className="grid grid-cols-5 gap-1.5">
         <ActionButton
           action="hit"
           label="HIT"
@@ -102,7 +108,7 @@ export function Actions({
         
         <ActionButton
           action="surrender"
-          label="SURRENDER"
+          label="SURR"
           icon="🏳️"
           enabled={canSurrender}
           color="bg-gray-700"
@@ -111,7 +117,7 @@ export function Actions({
       
       {/* Insurance action (only shown when available) */}
       {canInsurance && (
-        <div className="mt-2">
+        <div className="mt-1.5">
           <ActionButton
             action="insurance"
             label="INSURANCE"

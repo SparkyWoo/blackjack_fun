@@ -2,8 +2,8 @@
 
 import React from 'react';
 import { Card } from '@/components/game/card';
-import { Chip } from '@/components/game/chip';
 import type { PlayerHand, Player } from '@/lib/types';
+import { motion } from 'framer-motion';
 
 interface PlayerSeatProps {
   seatNumber: number;
@@ -58,19 +58,19 @@ export function PlayerSeat({
   const getStatusColor = (status: PlayerHand['status']) => {
     switch (status) {
       case 'won':
-        return 'bg-gradient-to-r from-green-600 to-green-500 border-green-400';
+        return 'bg-green-600';
       case 'blackjack':
-        return 'bg-gradient-to-r from-yellow-500 to-amber-400 border-yellow-300';
+        return 'bg-yellow-500';
       case 'lost':
-        return 'bg-gradient-to-r from-red-600 to-red-500 border-red-400';
+        return 'bg-red-600';
       case 'bust':
-        return 'bg-gradient-to-r from-red-600 to-red-500 border-red-400';
+        return 'bg-red-600';
       case 'push':
-        return 'bg-gradient-to-r from-blue-600 to-blue-500 border-blue-400';
+        return 'bg-blue-600';
       case 'surrender':
-        return 'bg-gradient-to-r from-gray-600 to-gray-500 border-gray-400';
+        return 'bg-gray-600';
       default:
-        return 'bg-gradient-to-r from-blue-600 to-blue-500 border-blue-400';
+        return 'bg-blue-600';
     }
   };
   
@@ -90,49 +90,54 @@ export function PlayerSeat({
     <div
       className={`
         relative flex flex-col items-center
-        min-w-[180px] p-3 rounded-lg
+        min-w-[140px] p-2 rounded-md
         ${isEmpty ? 'opacity-90 hover:opacity-100' : ''}
         ${isCurrentPlayer 
-          ? 'ring-2 ring-yellow-400/70 bg-black/60 shadow-lg shadow-yellow-400/10' 
-          : 'bg-black/50 shadow-md'
+          ? 'ring-1 ring-yellow-400/70 bg-black/60 shadow-md shadow-yellow-400/10' 
+          : 'bg-black/40 shadow-sm'
         }
         ${isOccupied && !player ? 'ring-1 ring-green-400/50' : ''}
-        backdrop-blur-sm transition-all duration-300 ease-in-out
+        backdrop-blur-sm transition-all duration-200 ease-in-out
         border border-white/10
         ${className}
       `}
     >
+      {/* Current Turn Indicator */}
+      {hand?.isTurn && (
+        <div className="player-turn-indicator"></div>
+      )}
+      
       {/* Seat Number */}
-      <div className="absolute -top-2 -left-2 w-6 h-6 rounded-full bg-black/80 flex items-center justify-center border border-white/20">
-        <span className="text-white font-bold text-xs">{seatNumber + 1}</span>
+      <div className="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full bg-black/70 flex items-center justify-center border border-white/10 text-[10px] font-medium text-white">
+        {seatNumber + 1}
       </div>
       
       {/* Player Info */}
-      <div className="mb-3 text-center w-full">
+      <div className="mb-2 text-center w-full">
         {isEmpty && !isOccupied ? (
           <button
             onClick={() => onJoin?.(seatNumber)}
-            className="w-full px-4 py-2 
+            className="w-full px-2 py-1 
                      vlackjack-button
-                     text-sm"
+                     text-xs"
           >
-            Join Seat {seatNumber + 1}
+            Join
           </button>
         ) : player ? (
-          <div className="space-y-1">
-            <div className="font-bold text-white text-base tracking-wide flex items-center justify-center">
+          <div className="space-y-0.5">
+            <div className="font-medium text-white text-sm tracking-wide flex items-center justify-center">
               {player.name}
-              <span className="ml-2 bg-green-500 w-1.5 h-1.5 rounded-full animate-pulse"></span>
+              {isCurrentPlayer && (
+                <span className="ml-1.5 bg-green-500 w-1 h-1 rounded-full animate-pulse"></span>
+              )}
             </div>
-            <div className="text-xs text-white bg-black/60 px-3 py-1 rounded-full inline-block border border-white/10 shadow-inner">
+            <div className="text-[10px] text-white/80 bg-black/40 px-2 py-0.5 rounded-full inline-block">
               ${player.balance.toLocaleString()}
             </div>
           </div>
         ) : (
-          <div className="space-y-1">
-            <div className="font-bold text-white text-base tracking-wide flex items-center justify-center">
-              Reserved
-            </div>
+          <div className="text-xs text-white/70 font-medium">
+            Reserved
           </div>
         )}
       </div>
@@ -144,14 +149,14 @@ export function PlayerSeat({
             {hand.cards.map((card, index) => {
               // Calculate rotation and offset for fan effect
               // For player, we want a vertical fan (cards pointing upward)
-              const rotation = (index - (hand.cards.length - 1) / 2) * 6; // Reduced rotation angle
-              const translateX = (index - (hand.cards.length - 1) / 2) * 16; // Reduced horizontal spread
-              const translateY = -index * 2; // Reduced vertical staggering
+              const rotation = (index - (hand.cards.length - 1) / 2) * 4; // Reduced rotation angle
+              const translateX = (index - (hand.cards.length - 1) / 2) * 10; // Reduced horizontal spread
+              const translateY = -index * 1; // Reduced vertical staggering
               
               return (
                 <div
                   key={`player-${seatNumber}-${card.suit}-${card.rank}-${index}`}
-                  className="absolute transition-all duration-500 ease-in-out"
+                  className="absolute transition-all duration-300 ease-in-out"
                   style={{
                     transform: `translateX(${translateX}px) translateY(${translateY}px) rotate(${rotation}deg)`,
                     zIndex: 10 + index
@@ -160,7 +165,7 @@ export function PlayerSeat({
                   <Card
                     card={card}
                     isDealing={false}
-                    className="shadow-xl"
+                    className="shadow-md"
                   />
                 </div>
               );
@@ -168,8 +173,8 @@ export function PlayerSeat({
             
             {/* Score Badge - More prominent */}
             {hand.cards.some(card => card.isFaceUp) && (
-              <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 z-30">
-                <div className="px-3 py-1 bg-black/80 rounded-full text-white font-bold text-sm border border-white/20 shadow-lg">
+              <div className="absolute -bottom-5 left-1/2 transform -translate-x-1/2 z-30">
+                <div className="px-1.5 py-0.5 bg-black/70 rounded-md text-white font-bold text-xs shadow-sm">
                   {calculateScore(hand.cards)}
                 </div>
               </div>
@@ -180,40 +185,27 @@ export function PlayerSeat({
 
       {/* Bet Amount - Show above the seat */}
       {hand && hand.betAmount > 0 && (
-        <div className="absolute -top-14 left-1/2 transform -translate-x-1/2 z-30">
-          <div className="flex flex-col items-center">
-            <div className="text-xs text-white font-medium mb-1 bg-black/70 px-2 py-0.5 rounded-md shadow-sm">Bet</div>
-            <div className="px-3 py-1.5 bg-gradient-to-r from-yellow-600 to-amber-500 rounded-md text-white font-bold text-sm border border-yellow-300/50 shadow-lg">
-              ${hand.betAmount}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Bet Amount Chips - Show below the cards */}
-      {hand && hand.betAmount > 0 && (
-        <div className="mt-3 transform hover:scale-105 transition-transform">
-          <Chip value={hand.betAmount} disabled className="vlackjack-chip" />
+        <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 z-30">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="px-1.5 py-0.5 bg-yellow-600/90 rounded-sm text-white font-bold text-xs shadow-sm"
+          >
+            ${hand.betAmount}
+          </motion.div>
         </div>
       )}
 
       {/* Status */}
       {hand && hand.status !== 'betting' && hand.status !== 'active' && (
         <div className={`
-          absolute -top-2 left-1/2 transform -translate-x-1/2
-          px-3 py-0.5 rounded-full text-xs font-bold
+          absolute -top-1 left-1/2 transform -translate-x-1/2
+          px-2 py-0.5 rounded-sm text-[10px] font-bold
           ${getStatusColor(hand.status)}
-          text-white shadow-lg border
+          text-white shadow-sm
           animate-pulse
         `}>
           {getStatusText(hand.status)}
-        </div>
-      )}
-      
-      {/* Current Turn Indicator */}
-      {hand && hand.isTurn && (
-        <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-full h-0.5">
-          <div className="h-full bg-yellow-400 rounded-full animate-pulse"></div>
         </div>
       )}
     </div>
