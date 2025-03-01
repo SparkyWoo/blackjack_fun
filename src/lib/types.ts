@@ -40,7 +40,7 @@ export interface Player {
   lastPlayedAt: string;
 }
 
-export type GamePhase = 'waiting' | 'betting' | 'player_turns' | 'dealer_turn' | 'payout';
+export type GamePhase = 'waiting' | 'betting' | 'player_turns' | 'dealer_turn' | 'payout' | 'reshuffling';
 
 export interface GameState {
   id: string;

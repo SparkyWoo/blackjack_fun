@@ -1,10 +1,11 @@
 import { create } from 'zustand';
-import { createDeck, dealCard, calculateHandScore, shouldDealerHit, calculatePayout } from './blackjack';
+import { createDeck, dealCard, calculateHandScore, shouldDealerHit, calculatePayout, needsReshuffle } from './blackjack';
 import type { GameState, Player, PlayerAction, Card } from './types';
 import { supabase } from './supabase';
 
 // Constants
 const INITIAL_PLAYER_BALANCE = 10000; // Ensure players start with 10K as per PRD
+const RESHUFFLE_TIMER = 5; // 5 seconds for reshuffling animation
 
 interface GameStore extends GameState {
   players: Player[];
@@ -21,12 +22,14 @@ interface GameStore extends GameState {
   moveToNextPlayer: () => Promise<void>;
   dealerPlay: () => Promise<void>;
   handlePayouts: () => Promise<void>;
+  startBettingTimer: () => Promise<void>;
   
   // Game State Management
   updateGameState: (newState: Partial<GameState>) => void;
   resetGame: () => void;
   syncGameState: () => Promise<void>;
   initializeGameState: () => Promise<void>;
+  dealInitialCards: () => Promise<void>;
 }
 
 const INITIAL_STATE: Partial<GameState> = {
@@ -457,7 +460,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   startNewRound: async () => {
     try {
-      const { players, id } = get();
+      const { players, id, deck } = get();
       
       if (!id) {
         console.error('Cannot start new round: No game ID');
@@ -469,14 +472,74 @@ export const useGameStore = create<GameStore>((set, get) => ({
         return;
       }
       
-      // Create a new shuffled deck
-      const newDeck = createDeck();
+      // Check if we need to reshuffle
+      if (needsReshuffle(deck)) {
+        // Set game phase to reshuffling with timer
+        set({
+          gamePhase: 'reshuffling',
+          timer: RESHUFFLE_TIMER,
+        });
+        
+        // Sync the updated game state to the database
+        await get().syncGameState();
+        
+        // Start reshuffling countdown
+        const reshuffleInterval = setInterval(async () => {
+          const { timer, gamePhase } = get();
+          
+          // If game phase changed or timer reached 0, clear interval
+          if (gamePhase !== 'reshuffling' || timer === null || timer <= 0) {
+            clearInterval(reshuffleInterval);
+            
+            // When timer reaches 0, create a new deck and move to betting phase
+            if (gamePhase === 'reshuffling' && (timer === null || timer <= 0)) {
+              // Create a new shuffled deck
+              const newDeck = createDeck();
+              
+              // Reset dealer hand
+              const dealerHand: Card[] = [];
+              
+              // Set initial timer value for betting phase
+              const initialTimer = 15;
+              
+              // Set game phase to betting with timer
+              set({
+                deck: newDeck,
+                dealerHand,
+                dealerScore: 0,
+                currentPlayerIndex: -1,
+                gamePhase: 'betting',
+                playerHands: [],
+                timer: initialTimer,
+              });
+              
+              // Sync the updated game state to the database
+              await get().syncGameState();
+              
+              // Start betting phase timer
+              get().startBettingTimer();
+            }
+            return;
+          }
+          
+          // Decrement timer
+          set({ timer: timer - 1 });
+          
+          // Sync updated timer to database
+          await get().syncGameState();
+        }, 1000);
+        
+        return;
+      }
+      
+      // Create a new shuffled deck if not reshuffling and no existing deck
+      const newDeck = deck.length > 0 ? deck : createDeck();
       
       // Reset dealer hand with proper typing
       const dealerHand: Card[] = [];
       
-      // Set initial timer value (30 seconds for betting phase)
-      const initialTimer = 30;
+      // Set initial timer value (15 seconds for betting phase)
+      const initialTimer = 15;
       
       // Set game phase to betting with timer
       set({
@@ -492,33 +555,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       // Sync the updated game state to the database
       await get().syncGameState();
       
-      // Start countdown timer
-      const timerInterval = setInterval(async () => {
-        const { timer, gamePhase } = get();
-        
-        // If game phase changed or timer reached 0, clear interval
-        if (gamePhase !== 'betting' || timer === null || timer <= 0) {
-          clearInterval(timerInterval);
-          return;
-        }
-        
-        // Decrement timer
-        set({ timer: timer - 1 });
-        
-        // Sync updated timer to database
-        await get().syncGameState();
-        
-        // When timer reaches 0, move to next phase
-        if (timer <= 1) {
-          clearInterval(timerInterval);
-          
-          // Deal cards to players and dealer
-          // This would be implemented in a separate function
-          // For now, just change the game phase
-          set({ gamePhase: 'player_turns', timer: null });
-          await get().syncGameState();
-        }
-      }, 1000);
+      // Start betting phase timer
+      get().startBettingTimer();
     } catch (error) {
       console.error('Error starting new round:', error);
     }
@@ -655,5 +693,103 @@ export const useGameStore = create<GameStore>((set, get) => ({
       console.error('Error handling payouts:', error);
       throw error;
     }
+  },
+
+  // Add a new function to deal initial cards
+  dealInitialCards: async () => {
+    try {
+      const { deck, playerHands } = get();
+      let currentDeck = [...deck];
+      let updatedHands = [...playerHands];
+      const dealerCards: Card[] = [];
+      
+      // Deal first card to each player
+      for (let i = 0; i < updatedHands.length; i++) {
+        const { card, remainingDeck } = dealCard(currentDeck, true);
+        updatedHands[i] = {
+          ...updatedHands[i],
+          cards: [card],
+          status: 'active',
+        };
+        currentDeck = remainingDeck;
+      }
+      
+      // Deal first card to dealer (face up)
+      const { card: dealerCard1, remainingDeck: deckAfterDealerCard1 } = dealCard(currentDeck, true);
+      dealerCards.push(dealerCard1);
+      currentDeck = deckAfterDealerCard1;
+      
+      // Deal second card to each player
+      for (let i = 0; i < updatedHands.length; i++) {
+        const { card, remainingDeck } = dealCard(currentDeck, true);
+        updatedHands[i] = {
+          ...updatedHands[i],
+          cards: [...updatedHands[i].cards, card],
+        };
+        currentDeck = remainingDeck;
+      }
+      
+      // Deal second card to dealer (face down)
+      const { card: dealerCard2, remainingDeck: deckAfterDealerCard2 } = dealCard(currentDeck, false);
+      dealerCards.push(dealerCard2);
+      currentDeck = deckAfterDealerCard2;
+      
+      // Check for player blackjacks
+      updatedHands = updatedHands.map(hand => {
+        const score = calculateHandScore(hand.cards);
+        if (score === 21 && hand.cards.length === 2) {
+          return { ...hand, status: 'blackjack' };
+        }
+        return hand;
+      });
+      
+      // Set the first player's turn
+      if (updatedHands.length > 0) {
+        updatedHands[0] = { ...updatedHands[0], isTurn: true };
+      }
+      
+      // Update state with dealt cards
+      set({
+        deck: currentDeck,
+        dealerHand: dealerCards,
+        dealerScore: calculateHandScore(dealerCards.filter(c => c.isFaceUp)),
+        playerHands: updatedHands,
+        gamePhase: 'player_turns',
+        currentPlayerIndex: 0,
+        timer: null,
+      });
+      
+      // Sync the updated game state to the database
+      await get().syncGameState();
+    } catch (error) {
+      console.error('Error dealing initial cards:', error);
+    }
+  },
+
+  // Helper function to start the betting timer
+  startBettingTimer: async () => {
+    const timerInterval = setInterval(async () => {
+      const { timer, gamePhase } = get();
+      
+      // If game phase changed or timer reached 0, clear interval
+      if (gamePhase !== 'betting' || timer === null || timer <= 0) {
+        clearInterval(timerInterval);
+        return;
+      }
+      
+      // Decrement timer
+      set({ timer: timer - 1 });
+      
+      // Sync updated timer to database
+      await get().syncGameState();
+      
+      // When timer reaches 0, move to next phase
+      if (timer <= 1) {
+        clearInterval(timerInterval);
+        
+        // Deal cards to players and dealer
+        await get().dealInitialCards();
+      }
+    }, 1000);
   },
 })); 

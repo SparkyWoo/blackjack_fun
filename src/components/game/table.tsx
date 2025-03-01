@@ -78,6 +78,8 @@ export function Table() {
         return '🎩 DEALER TURN';
       case 'payout':
         return '🏆 SHOWDOWN';
+      case 'reshuffling':
+        return '🔄 RESHUFFLING DECKS';
       default:
         // Handle any unexpected phase values
         return `${String(phase).replace('_', ' ').toUpperCase()}`;
@@ -210,13 +212,28 @@ export function Table() {
 
         {/* Timer Display */}
         {gamePhase === 'betting' && timer !== null && (
-          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50">
-            <div className="px-6 py-3 bg-black/70 rounded-xl border border-yellow-500/30 shadow-lg">
-              <div className="text-white font-bold text-xl flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-50">
+            <div className="px-4 py-2 bg-black/70 rounded-lg border border-yellow-500/30 shadow-lg">
+              <div className="text-white font-medium text-base flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                Betting ends in: {timer}s
+                Betting: {timer}s
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Reshuffling Timer Display */}
+        {gamePhase === 'reshuffling' && timer !== null && (
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50">
+            <div className="px-8 py-6 bg-black/80 rounded-xl border border-yellow-500/50 shadow-2xl">
+              <div className="text-white font-bold text-2xl flex flex-col items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mb-4 text-yellow-400 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span className="mb-2">RESHUFFLING DECKS</span>
+                <span className="text-xl">{timer}s</span>
               </div>
             </div>
           </div>

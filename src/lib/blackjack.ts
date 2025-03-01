@@ -3,19 +3,23 @@ import { Card, Rank, Suit } from './types';
 // Create a new deck of cards
 export function createDeck(): Card[] {
   const suits: Suit[] = ['hearts', 'diamonds', 'clubs', 'spades'];
-  const ranks: Rank[] = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+  const ranks: Rank[] = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
   const deck: Card[] = [];
 
-  for (const suit of suits) {
-    for (const rank of ranks) {
-      deck.push({
-        suit,
-        rank,
-        isFaceUp: true,
-      });
+  // Create 2 decks
+  for (let d = 0; d < 2; d++) {
+    for (const suit of suits) {
+      for (const rank of ranks) {
+        deck.push({
+          suit,
+          rank,
+          isFaceUp: true,
+        });
+      }
     }
   }
 
+  // Shuffle the deck
   return shuffleDeck(deck);
 }
 
@@ -169,4 +173,10 @@ export function calculatePayout(betAmount: number, playerCards: Card[], dealerCa
   }
   
   return payout;
+}
+
+// Function to check if deck needs reshuffling (less than 20% of cards remaining)
+export function needsReshuffle(deck: Card[]): boolean {
+  // 2 decks = 104 cards, reshuffle when less than ~20 cards remain
+  return deck.length < 20;
 } 
